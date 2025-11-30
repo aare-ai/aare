@@ -1,0 +1,55 @@
+{
+  "name": "example-custom",
+  "version": "1.0.0",
+  "description": "Example custom ontology - demonstrates how to create your own compliance rules",
+  "constraints": [
+    {
+      "id": "MAX_DISCOUNT",
+      "category": "Pricing",
+      "description": "Maximum discount percentage allowed",
+      "formula_readable": "discount_percentage ≤ 25",
+      "variables": [
+        {"name": "discount_percentage", "type": "real"}
+      ],
+      "error_message": "Discount exceeds maximum allowed (25%)",
+      "citation": "Internal Policy - Pricing Guidelines"
+    },
+    {
+      "id": "NO_COMPETITOR_MENTION",
+      "category": "Brand",
+      "description": "Cannot mention competitor names",
+      "formula_readable": "¬mentions_competitor",
+      "variables": [
+        {"name": "mentions_competitor", "type": "bool"}
+      ],
+      "error_message": "Competitor name mentioned in response",
+      "citation": "Internal Policy - Brand Guidelines"
+    },
+    {
+      "id": "RESPONSE_LENGTH",
+      "category": "Quality",
+      "description": "Response must be substantive",
+      "formula_readable": "word_count ≥ 10",
+      "variables": [
+        {"name": "word_count", "type": "int"}
+      ],
+      "error_message": "Response too short",
+      "citation": "Internal Policy - Quality Standards"
+    }
+  ],
+  "extractors": {
+    "discount_percentage": {
+      "type": "float",
+      "pattern": "(\\d+(?:\\.\\d+)?)\\s*%\\s*(?:off|discount)"
+    },
+    "mentions_competitor": {
+      "type": "boolean",
+      "keywords": ["competitor-a", "competitor-b", "competitor-c"]
+    },
+    "word_count": {
+      "type": "int",
+      "pattern": ".*",
+      "compute": "word_count"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Flask for HTTP server
+flask==3.0.0
+gunicorn==21.2.0
+
+# Core verification engine
+z3-solver==4.15.4.0
+
+# Data processing
+pydantic==2.5.3
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Ontology processing
+rdflib==7.0.0
+owlready2==0.45
+
+# Utilities
+python-dotenv==1.0.0
+ujson==5.9.0

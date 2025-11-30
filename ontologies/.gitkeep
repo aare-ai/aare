@@ -1,0 +1,13 @@
+# Place custom ontology JSON files in this directory
+# Example: my-custom-ontology.json
+#
+# Ontology files must have the following structure:
+# {
+#   "name": "my-custom-ontology",
+#   "version": "1.0.0",
+#   "description": "Description of your ontology",
+#   "constraints": [...],
+#   "extractors": {...}
+# }
+#
+# See README.md for full documentation on creating custom ontologies.
