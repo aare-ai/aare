@@ -82,9 +82,9 @@ The formula compiler translates JSON constraint definitions into Z3 expressions.
 
 | Category | Operators |
 |----------|-----------|
-| **Logical** | `and`, `or`, `not`, `implies` |
+| **Logical** | `and`, `or`, `not`, `implies`, `ite` (if-then-else) |
 | **Comparison** | `==`, `!=`, `<`, `<=`, `>`, `>=` |
-| **Arithmetic** | `+`, `-`, `*`, `/` |
+| **Arithmetic** | `+`, `-`, `*`, `/`, `min`, `max` |
 | **Constants** | `true`, `false`, numeric values |
 
 ### Formula Examples
@@ -113,6 +113,12 @@ The formula compiler translates JSON constraint definitions into Z3 expressions.
   {"<=": ["dti", 43]},
   {">=": ["compensating_factors", 2]}
 ]}
+
+// If-then-else: conditional value
+{"ite": [{">": ["score", 700]}, "approved", "denied"]}
+
+// Min/max: fee capped at lesser of $500 or 3% of loan
+{"<=": ["fee", {"min": [500, {"*": ["loan", 0.03]}]}]}
 ```
 
 ## API Reference
@@ -135,6 +141,7 @@ curl -X POST http://localhost:8080/verify \
 {
   "verified": true,
   "violations": [],
+  "warnings": ["Variables defaulted (not found in input): ['variable_name']"],
   "parsed_data": {
     "value": 50,
     "option_a": true
@@ -153,6 +160,8 @@ curl -X POST http://localhost:8080/verify \
   "timestamp": "2024-01-01T00:00:00Z"
 }
 ```
+
+**Note:** The `warnings` field appears when variables couldn't be extracted from the LLM output and were defaulted. This helps auditors understand verification scope.
 
 ### GET /ontologies
 

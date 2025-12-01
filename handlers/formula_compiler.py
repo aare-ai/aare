@@ -3,9 +3,9 @@ Formula Compiler for aare.ai
 Compiles structured JSON formulas into Z3 expressions
 
 Supported operators:
-- Logical: and, or, not, implies
+- Logical: and, or, not, implies, ite (if-then-else)
 - Comparison: ==, !=, <, <=, >, >=
-- Arithmetic: +, -, *, /
+- Arithmetic: +, -, *, /, min, max
 - Constants: true, false
 
 Example formula:
@@ -17,7 +17,15 @@ Example formula:
 }
 """
 from typing import Dict, Any, Union
-from z3 import And, Or, Not, Implies, Bool, Int, Real, BoolVal, is_bool, is_int, is_real
+from z3 import And, Or, Not, Implies, If, Bool, Int, Real, BoolVal, RealVal, is_bool, is_int, is_real
+
+# All recognized operators
+OPERATORS = {
+    "and", "or", "not", "implies", "ite", "if",
+    "==", "!=", "<", "<=", ">", ">=",
+    "+", "-", "*", "/", "min", "max",
+    "const", "var"
+}
 
 
 class FormulaCompiler:
@@ -37,7 +45,14 @@ class FormulaCompiler:
         if formula is None:
             return BoolVal(True)
 
-        # Handle each operator type
+        # Handle non-dict values (constants passed directly)
+        if not isinstance(formula, dict):
+            return formula
+
+        # Validate: only one operator per formula dict
+        ops_in_formula = [k for k in formula.keys() if k in OPERATORS]
+        if len(ops_in_formula) > 1:
+            raise ValueError(f"Formula has multiple operators: {ops_in_formula}. Use one operator per dict.")
 
         # Logical operators
         if "and" in formula:
@@ -57,6 +72,16 @@ class FormulaCompiler:
                 raise ValueError("implies requires exactly 2 arguments")
             return Implies(self.compile(args[0], z3_vars),
                           self.compile(args[1], z3_vars))
+
+        # If-then-else (ite)
+        if "ite" in formula or "if" in formula:
+            args = formula.get("ite") or formula.get("if")
+            if len(args) != 3:
+                raise ValueError("ite/if requires exactly 3 arguments: [condition, then, else]")
+            cond = self.compile(args[0], z3_vars)
+            then_expr = self.compile(args[1], z3_vars)
+            else_expr = self.compile(args[2], z3_vars)
+            return If(cond, then_expr, else_expr)
 
         # Comparison operators
         if "==" in formula:
@@ -99,6 +124,15 @@ class FormulaCompiler:
         if "/" in formula:
             left, right = self._resolve_operands(formula["/"], z3_vars)
             return left / right
+
+        # Min/max operators (useful for "fee capped at lesser of $500 or 3%")
+        if "min" in formula:
+            left, right = self._resolve_operands(formula["min"], z3_vars)
+            return If(left <= right, left, right)
+
+        if "max" in formula:
+            left, right = self._resolve_operands(formula["max"], z3_vars)
+            return If(left >= right, left, right)
 
         # Boolean constants
         if "const" in formula:

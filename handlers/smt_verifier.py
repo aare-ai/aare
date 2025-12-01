@@ -17,21 +17,30 @@ class SMTVerifier:
         start_time = time.time()
         violations = []
         proofs = []
+        all_missing_vars = set()
 
         for constraint in ontology['constraints']:
             result = self._check_constraint(data, constraint)
             if result['violated']:
                 violations.append(result['violation'])
                 proofs.append(result['proof'])
+            # Track missing variables across all constraints
+            all_missing_vars.update(result.get('missing_vars', []))
 
         execution_time = int((time.time() - start_time) * 1000)
 
-        return {
+        response = {
             'verified': len(violations) == 0,
             'violations': violations,
             'proof': self._generate_proof_certificate(proofs),
             'execution_time_ms': execution_time
         }
+
+        # Add warnings for missing variables (helps auditors understand verification scope)
+        if all_missing_vars:
+            response['warnings'] = [f"Variables defaulted (not found in input): {sorted(all_missing_vars)}"]
+
+        return response
 
     def _check_constraint(self, data: Dict, constraint: Dict) -> Dict[str, Any]:
         """Check a single constraint using Z3"""
@@ -40,12 +49,16 @@ class SMTVerifier:
         # Create Z3 variables
         z3_vars = self._create_z3_variables(constraint['variables'], data)
 
+        # Track missing variables for warnings
+        missing_vars = []
+
         # Add known values to solver
         # For unknown values, provide sensible defaults that won't trigger violations
         for var_name, z3_var in z3_vars.items():
             if var_name in data:
                 solver.add(z3_var == data[var_name])
             else:
+                missing_vars.append(var_name)
                 # Default unknown values to safe/non-triggering values
                 # Booleans default to False, numbers to safe ranges
                 if is_bool(z3_var):
@@ -69,6 +82,7 @@ class SMTVerifier:
             model = solver.model()
             return {
                 'violated': True,
+                'missing_vars': missing_vars,
                 'violation': {
                     'constraint_id': constraint['id'],
                     'category': constraint.get('category', 'General'),
@@ -88,6 +102,7 @@ class SMTVerifier:
             # Constraint satisfied
             return {
                 'violated': False,
+                'missing_vars': missing_vars,
                 'proof': {
                     'result': 'UNSAT (constraint satisfied)',
                     'constraint': constraint['id']
