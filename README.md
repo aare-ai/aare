@@ -21,6 +21,10 @@ This is the core library used by all cloud deployments:
 ## Installation
 
 ```bash
+# Create a virtual environment (recommended)
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
 # Core library only
 pip install aare-core
 
