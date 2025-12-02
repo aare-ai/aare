@@ -456,6 +456,24 @@ if verification["verified"]:
     return llm_output
 ```
 
+## Performance
+
+aare-core is optimized for high-throughput verification. Benchmarks on a standard laptop:
+
+| Test | Throughput | p99 Latency |
+|------|-----------|-------------|
+| Single-threaded | ~320 req/s | 4 ms |
+| Multi-process (4 workers) | ~1,600 req/s | 3 ms |
+| Complex ontology (50+ constraints) | ~40 req/s | 30 ms |
+
+Run the stress test yourself:
+
+```bash
+python tests/stress_test.py --requests 5000 --workers 4
+```
+
+The multi-process mode achieves near-linear scaling. Z3 is not thread-safe, so we use separate processes for concurrent workloads.
+
 ## Running Tests
 
 ```bash
