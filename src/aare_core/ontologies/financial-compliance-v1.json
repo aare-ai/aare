@@ -1,0 +1,99 @@
+{
+  "name": "financial-compliance-v1",
+  "version": "1.0.0",
+  "description": "Financial advice and investment compliance constraints",
+  "constraints": [
+    {
+      "id": "NO_SPECIFIC_SECURITIES",
+      "category": "Investment Advice",
+      "description": "Prohibition on recommending specific securities",
+      "formula_readable": "¬recommends_specific_securities",
+      "formula": {"==": ["recommends_specific_securities", false]},
+      "variables": [
+        {"name": "recommends_specific_securities", "type": "bool"}
+      ],
+      "error_message": "Cannot recommend specific securities without RIA license",
+      "citation": "Investment Advisers Act of 1940"
+    },
+    {
+      "id": "NO_GUARANTEED_RETURNS",
+      "category": "Disclosures",
+      "description": "Prohibition on guaranteeing returns",
+      "formula_readable": "¬guarantees_returns",
+      "formula": {"==": ["guarantees_returns", false]},
+      "variables": [
+        {"name": "guarantees_returns", "type": "bool"}
+      ],
+      "error_message": "Cannot guarantee investment returns",
+      "citation": "SEC Rule 206(4)-1"
+    },
+    {
+      "id": "REQUIRED_DISCLAIMER",
+      "category": "Disclosures",
+      "description": "Financial advice requires disclaimer",
+      "formula_readable": "¬is_financial_advice ∨ has_disclaimer",
+      "formula": {
+        "or": [
+          {"==": ["is_financial_advice", false]},
+          {"==": ["has_disclaimer", true]}
+        ]
+      },
+      "variables": [
+        {"name": "is_financial_advice", "type": "bool"},
+        {"name": "has_disclaimer", "type": "bool"}
+      ],
+      "error_message": "Financial advice requires proper disclaimer",
+      "citation": "FINRA Rule 2210"
+    },
+    {
+      "id": "NO_BUY_SELL_SIGNALS",
+      "category": "Investment Advice",
+      "description": "Prohibition on buy/sell recommendations",
+      "formula_readable": "¬has_buy_sell_recommendation",
+      "formula": {"==": ["has_buy_sell_recommendation", false]},
+      "variables": [
+        {"name": "has_buy_sell_recommendation", "type": "bool"}
+      ],
+      "error_message": "Cannot provide buy/sell recommendations",
+      "citation": "Investment Advisers Act"
+    },
+    {
+      "id": "SUITABILITY",
+      "category": "Compliance",
+      "description": "Advice must consider suitability",
+      "formula_readable": "considers_suitability",
+      "formula": {"==": ["considers_suitability", true]},
+      "variables": [
+        {"name": "considers_suitability", "type": "bool"}
+      ],
+      "error_message": "Advice does not consider individual suitability",
+      "citation": "FINRA Rule 2111"
+    }
+  ],
+  "extractors": {
+    "recommends_specific_securities": {
+      "type": "boolean",
+      "keywords": ["vtsax", "vtiax", "spy", "qqq", "voo", "buy stock", "buy shares", "ticker"]
+    },
+    "guarantees_returns": {
+      "type": "boolean",
+      "keywords": ["guaranteed", "can't lose", "always goes up", "certain return", "risk-free", "100%"]
+    },
+    "has_disclaimer": {
+      "type": "boolean",
+      "keywords": ["not financial advice", "consult a professional", "disclaimer", "past performance", "not a recommendation"]
+    },
+    "has_buy_sell_recommendation": {
+      "type": "boolean",
+      "keywords": ["buy now", "sell now", "buy immediately", "sell all", "sell immediately"]
+    },
+    "is_financial_advice": {
+      "type": "boolean",
+      "keywords": ["invest", "portfolio", "allocation", "retirement", "stocks", "bonds"]
+    },
+    "considers_suitability": {
+      "type": "boolean",
+      "keywords": ["based on your", "given your situation", "considering your", "risk tolerance"]
+    }
+  }
+}

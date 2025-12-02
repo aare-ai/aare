@@ -1,0 +1,99 @@
+{
+  "name": "fair-lending-v1",
+  "version": "1.0.0",
+  "description": "Fair lending and loan approval compliance constraints",
+  "constraints": [
+    {
+      "id": "LOAN_AMOUNT_LIMIT",
+      "category": "Approval Authority",
+      "description": "Maximum loan amount without additional approval",
+      "formula_readable": "loan_amount <= 100000",
+      "formula": {"<=": ["loan_amount", 100000]},
+      "variables": [
+        {"name": "loan_amount", "type": "int"}
+      ],
+      "error_message": "Loan amount exceeds $100k threshold - requires additional approval",
+      "citation": "Lending Policy"
+    },
+    {
+      "id": "MIN_CREDIT_SCORE",
+      "category": "Creditworthiness",
+      "description": "Minimum credit score requirement",
+      "formula_readable": "credit_score >= 600",
+      "formula": {">=": ["credit_score", 600]},
+      "variables": [
+        {"name": "credit_score", "type": "int"}
+      ],
+      "error_message": "Credit score below 600 minimum",
+      "citation": "Underwriting Guidelines"
+    },
+    {
+      "id": "MAX_DTI",
+      "category": "Debt Capacity",
+      "description": "Maximum debt-to-income ratio",
+      "formula_readable": "dti <= 43",
+      "formula": {"<=": ["dti", 43]},
+      "variables": [
+        {"name": "dti", "type": "real"}
+      ],
+      "error_message": "DTI exceeds 43% maximum",
+      "citation": "12 CFR § 1026.43(c)"
+    },
+    {
+      "id": "DOWN_PAYMENT",
+      "category": "Equity",
+      "description": "Minimum down payment requirement",
+      "formula_readable": "¬has_down_payment ∨ (down_payment >= 5)",
+      "formula": {
+        "or": [
+          {"==": ["has_down_payment", false]},
+          {">=": ["down_payment", 5]}
+        ]
+      },
+      "variables": [
+        {"name": "has_down_payment", "type": "bool"},
+        {"name": "down_payment", "type": "real"}
+      ],
+      "error_message": "Down payment below 5% minimum",
+      "citation": "Lending Policy"
+    },
+    {
+      "id": "EMPLOYMENT_VERIFICATION",
+      "category": "Income",
+      "description": "Employment must be verified",
+      "formula_readable": "employment_verified",
+      "formula": {"==": ["employment_verified", true]},
+      "variables": [
+        {"name": "employment_verified", "type": "bool"}
+      ],
+      "error_message": "Employment verification required",
+      "citation": "Underwriting Standards"
+    }
+  ],
+  "extractors": {
+    "loan_amount": {
+      "type": "int",
+      "pattern": "\\$([\\d,]+)(?:k|K)?"
+    },
+    "credit_score": {
+      "type": "int",
+      "pattern": "(?:credit\\s*(?:score)?|fico|score|cs=)\\s*(?:is|of|:)?\\s*(\\d{3})"
+    },
+    "dti": {
+      "type": "float",
+      "pattern": "(?:debt-to-income|dti)(?:\\s*ratio)?\\s*(?:is|of|:)?\\s*(?:calculated\\s+at\\s+)?([\\d.]+)\\s*%?"
+    },
+    "down_payment": {
+      "type": "float",
+      "pattern": "(?:down payment|dp)(?:[:\\s]+|\\s+of\\s+)(\\d+(?:\\.\\d+)?)%?"
+    },
+    "has_down_payment": {
+      "type": "boolean",
+      "keywords": ["down payment", "down-payment", "downpayment"]
+    },
+    "employment_verified": {
+      "type": "boolean",
+      "keywords": ["employed", "software engineer", "income", "verified", "meets all criteria", "all parameters pass"]
+    }
+  }
+}

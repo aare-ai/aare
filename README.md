@@ -21,10 +21,48 @@ This is the core library used by all cloud deployments:
 ## Installation
 
 ```bash
+# Core library only
 pip install aare-core
+
+# With HTTP server support
+pip install aare-core[server]
 ```
 
 ## Quick Start
+
+### Command Line (Easiest)
+
+```bash
+# Verify text against bundled mortgage compliance rules
+aare-verify --input "DTI is 35%, credit score 720" --ontology mortgage-compliance-v1
+
+# Verify from a file
+aare-verify --file response.txt --ontology hipaa-v1
+
+# Pipe from another command
+echo "The loan amount is $350,000 with DTI of 42%" | aare-verify --ontology fair-lending-v1
+
+# List all available ontologies (10 bundled + custom)
+aare-ontologies
+
+# Output as JSON
+aare-verify --input "..." --ontology mortgage-compliance-v1 --json
+```
+
+### HTTP Server
+
+```bash
+# Start local server (requires: pip install aare-core[server])
+aare-serve
+
+# Or with custom port
+aare-serve --port 9000
+
+# Test it
+curl -X POST http://localhost:8080/verify \
+  -H "Content-Type: application/json" \
+  -d '{"llm_output": "DTI is 35%", "ontology": "mortgage-compliance-v1"}'
+```
 
 ### As a Library
 
@@ -209,6 +247,29 @@ Health check endpoint.
 
 ```bash
 curl http://localhost:8080/health
+```
+
+## Bundled Ontologies
+
+aare-core ships with 10 production-ready ontologies covering common compliance domains:
+
+| Ontology | Domain | Constraints | Use Case |
+|----------|--------|-------------|----------|
+| `mortgage-compliance-v1` | Lending | 5 | ATR/QM, HOEPA, UDAAP compliance |
+| `hipaa-v1` | Healthcare | 52 | HIPAA Privacy & Security Rule |
+| `medical-safety-v1` | Healthcare | 5 | Drug interactions, dosing limits |
+| `financial-compliance-v1` | Finance | 5 | Investment advice, disclaimers |
+| `fair-lending-v1` | Lending | 5 | DTI limits, credit score requirements |
+| `data-privacy-v1` | Security | 5 | PII detection, credential exposure |
+| `customer-service-v1` | Support | 5 | Discount limits, delivery promises |
+| `trading-compliance-v1` | Trading | 5 | Position limits, sector exposure |
+| `content-policy-v1` | Content | 5 | Real people, medical advice |
+| `contract-compliance-v1` | Legal | 5 | Usury limits, late fee caps |
+
+Use any ontology by name:
+
+```bash
+aare-verify --input "Your response" --ontology hipaa-v1
 ```
 
 ## Creating Custom Ontologies

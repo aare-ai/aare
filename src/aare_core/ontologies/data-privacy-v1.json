@@ -1,0 +1,89 @@
+{
+  "name": "data-privacy-v1",
+  "version": "1.0.0",
+  "description": "Data privacy and information security constraints",
+  "constraints": [
+    {
+      "id": "NO_PII",
+      "category": "Privacy",
+      "description": "Prohibition on exposing PII",
+      "formula_readable": "¬exposes_pii",
+      "formula": {"==": ["exposes_pii", false]},
+      "variables": [
+        {"name": "exposes_pii", "type": "bool"}
+      ],
+      "error_message": "Response exposes personally identifiable information",
+      "citation": "GDPR Article 5, CCPA"
+    },
+    {
+      "id": "NO_INTERNAL_URLS",
+      "category": "Security",
+      "description": "Prohibition on internal URLs",
+      "formula_readable": "¬reveals_internal_urls",
+      "formula": {"==": ["reveals_internal_urls", false]},
+      "variables": [
+        {"name": "reveals_internal_urls", "type": "bool"}
+      ],
+      "error_message": "Response reveals internal URLs or endpoints",
+      "citation": "Information Security Policy"
+    },
+    {
+      "id": "NO_CREDENTIALS",
+      "category": "Security",
+      "description": "Prohibition on exposing credentials",
+      "formula_readable": "¬shares_credentials",
+      "formula": {"==": ["shares_credentials", false]},
+      "variables": [
+        {"name": "shares_credentials", "type": "bool"}
+      ],
+      "error_message": "Response contains API keys or credentials",
+      "citation": "Security Policy Section 5.2"
+    },
+    {
+      "id": "NO_DB_NAMES",
+      "category": "Security",
+      "description": "Prohibition on database names",
+      "formula_readable": "¬reveals_db_names",
+      "formula": {"==": ["reveals_db_names", false]},
+      "variables": [
+        {"name": "reveals_db_names", "type": "bool"}
+      ],
+      "error_message": "Response reveals database or table names",
+      "citation": "Security Policy Section 5.3"
+    },
+    {
+      "id": "DATA_MINIMIZATION",
+      "category": "Privacy",
+      "description": "Only necessary data should be disclosed",
+      "formula_readable": "¬excessive_data_disclosure",
+      "formula": {"==": ["excessive_data_disclosure", false]},
+      "variables": [
+        {"name": "excessive_data_disclosure", "type": "bool"}
+      ],
+      "error_message": "Response contains excessive data disclosure",
+      "citation": "GDPR Article 5(1)(c)"
+    }
+  ],
+  "extractors": {
+    "exposes_pii": {
+      "type": "boolean",
+      "keywords": ["john smith", "email:", "@email.com", "cust_", "ssn", "social security", "date of birth"]
+    },
+    "reveals_internal_urls": {
+      "type": "boolean",
+      "keywords": [".internal.", "localhost", "127.0.0.1", "192.168.", "10.0.", "api.internal"]
+    },
+    "shares_credentials": {
+      "type": "boolean",
+      "keywords": ["sk_live", "sk_test", "api_key", "password", "secret", "token=", "bearer "]
+    },
+    "reveals_db_names": {
+      "type": "boolean",
+      "keywords": ["_db", "database:", "prod_", "staging_", "mysql", "postgres", "mongodb"]
+    },
+    "excessive_data_disclosure": {
+      "type": "boolean",
+      "keywords": ["all records", "full dump", "entire table"]
+    }
+  }
+}

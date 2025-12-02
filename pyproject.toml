@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aare-core"
-version = "0.1.0"
+version = "0.2.0"
 description = "Z3 SMT verification engine for LLM compliance"
 readme = "README.md"
 license = {text = "MIT"}
@@ -31,10 +31,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+server = [
+    "flask>=3.0.0",
+    "gunicorn>=21.0.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
+
+[project.scripts]
+aare-verify = "aare_core.cli:verify_cli"
+aare-ontologies = "aare_core.cli:list_ontologies_cli"
+aare-serve = "aare_core.cli:serve_cli"
 
 [project.urls]
 Homepage = "https://aare.ai"
@@ -45,7 +54,7 @@ Documentation = "https://github.com/aare-ai/aare-core#readme"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["py.typed"]
+"*" = ["py.typed", "ontologies/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

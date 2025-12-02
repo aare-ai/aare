@@ -1,0 +1,89 @@
+{
+  "name": "content-policy-v1",
+  "version": "1.0.0",
+  "description": "Content moderation and policy compliance constraints",
+  "constraints": [
+    {
+      "id": "NO_REAL_PEOPLE",
+      "category": "Privacy",
+      "description": "Prohibition on mentioning real individuals",
+      "formula_readable": "¬mentions_real_people",
+      "formula": {"==": ["mentions_real_people", false]},
+      "variables": [
+        {"name": "mentions_real_people", "type": "bool"}
+      ],
+      "error_message": "Content references real individuals",
+      "citation": "Content Policy Section 3.1"
+    },
+    {
+      "id": "NO_RELIGIOUS_CONTENT",
+      "category": "Neutrality",
+      "description": "Prohibition on religious references",
+      "formula_readable": "¬has_religious_content",
+      "formula": {"==": ["has_religious_content", false]},
+      "variables": [
+        {"name": "has_religious_content", "type": "bool"}
+      ],
+      "error_message": "Content contains religious references",
+      "citation": "Content Policy Section 2.4"
+    },
+    {
+      "id": "NO_MEDICAL_ADVICE",
+      "category": "Safety",
+      "description": "Prohibition on medical advice",
+      "formula_readable": "¬provides_medical_advice",
+      "formula": {"==": ["provides_medical_advice", false]},
+      "variables": [
+        {"name": "provides_medical_advice", "type": "bool"}
+      ],
+      "error_message": "Content provides medical advice",
+      "citation": "Content Policy Section 4.1"
+    },
+    {
+      "id": "NO_POLITICAL_CONTENT",
+      "category": "Neutrality",
+      "description": "Prohibition on political content",
+      "formula_readable": "¬has_political_content",
+      "formula": {"==": ["has_political_content", false]},
+      "variables": [
+        {"name": "has_political_content", "type": "bool"}
+      ],
+      "error_message": "Content contains political references",
+      "citation": "Content Policy Section 2.3"
+    },
+    {
+      "id": "AGE_APPROPRIATE",
+      "category": "Safety",
+      "description": "Content must be age-appropriate",
+      "formula_readable": "¬has_adult_content",
+      "formula": {"==": ["has_adult_content", false]},
+      "variables": [
+        {"name": "has_adult_content", "type": "bool"}
+      ],
+      "error_message": "Content is not age-appropriate",
+      "citation": "Content Policy Section 1.1"
+    }
+  ],
+  "extractors": {
+    "mentions_real_people": {
+      "type": "boolean",
+      "keywords": ["obama", "trump", "biden", "tim cook", "elon musk", "dalai lama", "pope", "celebrity"]
+    },
+    "has_religious_content": {
+      "type": "boolean",
+      "keywords": ["prayer", "meditation", "god", "jesus", "allah", "buddha", "spiritual", "religious"]
+    },
+    "provides_medical_advice": {
+      "type": "boolean",
+      "keywords": ["adhd", "anxiety", "depression", "symptoms", "treatment", "medication", "diagnosis", "therapy"]
+    },
+    "has_political_content": {
+      "type": "boolean",
+      "keywords": ["democrat", "republican", "election", "congress", "senate", "liberal", "conservative"]
+    },
+    "has_adult_content": {
+      "type": "boolean",
+      "keywords": ["explicit", "adult", "nsfw", "sexual"]
+    }
+  }
+}

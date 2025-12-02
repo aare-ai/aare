@@ -1,0 +1,953 @@
+{
+  "name": "hipaa-v1",
+  "version": "1.0.0",
+  "description": "HIPAA Privacy & Security Rule compliance for healthcare AI agents - 52 constraints",
+  "constraints": [
+    {
+      "id": "PHI_NAME_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Patient name must not be disclosed to unauthorized recipients",
+      "formula_readable": "¬(has_patient_name ∧ ¬recipient_authorized)",
+      "formula": {
+        "or": [
+          {"==": ["has_patient_name", false]},
+          {"==": ["recipient_authorized", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_patient_name", "type": "bool"},
+        {"name": "recipient_authorized", "type": "bool"}
+      ],
+      "error_message": "Patient name disclosed without authorization",
+      "citation": "HIPAA §164.502(a)(1)"
+    },
+    {
+      "id": "PHI_DOB_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Date of birth must be de-identified or authorized",
+      "formula_readable": "¬(has_dob ∧ ¬is_deidentified)",
+      "formula": {
+        "or": [
+          {"==": ["has_dob", false]},
+          {"==": ["is_deidentified", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_dob", "type": "bool"},
+        {"name": "is_deidentified", "type": "bool"}
+      ],
+      "error_message": "Date of birth disclosed without de-identification",
+      "citation": "HIPAA §164.514(b)"
+    },
+    {
+      "id": "PHI_ADDRESS_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Street address must not be disclosed",
+      "formula_readable": "¬has_street_address",
+      "formula": {"==": ["has_street_address", false]},
+      "variables": [
+        {"name": "has_street_address", "type": "bool"}
+      ],
+      "error_message": "Street address disclosed - HIPAA violation",
+      "citation": "HIPAA §164.514(b)(2)(i)(B)"
+    },
+    {
+      "id": "PHI_PHONE_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Phone numbers must not be disclosed",
+      "formula_readable": "¬has_phone_number",
+      "formula": {"==": ["has_phone_number", false]},
+      "variables": [
+        {"name": "has_phone_number", "type": "bool"}
+      ],
+      "error_message": "Phone number disclosed - HIPAA violation",
+      "citation": "HIPAA §164.514(b)(2)(i)(D)"
+    },
+    {
+      "id": "PHI_SSN_ZERO_TOLERANCE",
+      "category": "PHI Detection",
+      "description": "Social Security Numbers are strictly prohibited",
+      "formula_readable": "¬has_ssn",
+      "formula": {"==": ["has_ssn", false]},
+      "variables": [
+        {"name": "has_ssn", "type": "bool"}
+      ],
+      "error_message": "SSN disclosed - Critical HIPAA violation",
+      "citation": "HIPAA §164.514(b)(2)(i)(L)"
+    },
+    {
+      "id": "PHI_MRN_ZERO_TOLERANCE",
+      "category": "PHI Detection",
+      "description": "Medical Record Numbers must not be disclosed externally",
+      "formula_readable": "¬(has_mrn ∧ recipient_external)",
+      "formula": {
+        "or": [
+          {"==": ["has_mrn", false]},
+          {"==": ["recipient_external", false]}
+        ]
+      },
+      "variables": [
+        {"name": "has_mrn", "type": "bool"},
+        {"name": "recipient_external", "type": "bool"}
+      ],
+      "error_message": "Medical Record Number disclosed to external party",
+      "citation": "HIPAA §164.514(b)(2)(i)(N)"
+    },
+    {
+      "id": "PHI_EMAIL_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Email addresses must not be disclosed",
+      "formula_readable": "¬has_email",
+      "formula": {"==": ["has_email", false]},
+      "variables": [
+        {"name": "has_email", "type": "bool"}
+      ],
+      "error_message": "Email address disclosed - HIPAA violation",
+      "citation": "HIPAA §164.514(b)(2)(i)(E)"
+    },
+    {
+      "id": "PHI_DEVICE_ID_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Device identifiers must not be disclosed",
+      "formula_readable": "¬has_device_id",
+      "formula": {"==": ["has_device_id", false]},
+      "variables": [
+        {"name": "has_device_id", "type": "bool"}
+      ],
+      "error_message": "Device identifier disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(P)"
+    },
+    {
+      "id": "PHI_URL_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "URLs containing patient identifiers prohibited",
+      "formula_readable": "¬has_patient_url",
+      "formula": {"==": ["has_patient_url", false]},
+      "variables": [
+        {"name": "has_patient_url", "type": "bool"}
+      ],
+      "error_message": "Patient-identifying URL disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(O)"
+    },
+    {
+      "id": "PHI_IP_ADDRESS_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "IP addresses must not be disclosed",
+      "formula_readable": "¬has_ip_address",
+      "formula": {"==": ["has_ip_address", false]},
+      "variables": [
+        {"name": "has_ip_address", "type": "bool"}
+      ],
+      "error_message": "IP address disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(O)"
+    },
+    {
+      "id": "PHI_BIOMETRIC_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Biometric identifiers prohibited",
+      "formula_readable": "¬has_biometric",
+      "formula": {"==": ["has_biometric", false]},
+      "variables": [
+        {"name": "has_biometric", "type": "bool"}
+      ],
+      "error_message": "Biometric identifier disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(Q)"
+    },
+    {
+      "id": "PHI_PHOTO_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Full-face photographs prohibited",
+      "formula_readable": "¬has_photo_reference",
+      "formula": {"==": ["has_photo_reference", false]},
+      "variables": [
+        {"name": "has_photo_reference", "type": "bool"}
+      ],
+      "error_message": "Photo reference disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(R)"
+    },
+    {
+      "id": "PHI_VEHICLE_ID_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Vehicle identifiers prohibited",
+      "formula_readable": "¬has_vehicle_id",
+      "formula": {"==": ["has_vehicle_id", false]},
+      "variables": [
+        {"name": "has_vehicle_id", "type": "bool"}
+      ],
+      "error_message": "Vehicle identifier disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(M)"
+    },
+    {
+      "id": "PHI_ACCOUNT_NUMBER_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "Account numbers must not be disclosed",
+      "formula_readable": "¬has_account_number",
+      "formula": {"==": ["has_account_number", false]},
+      "variables": [
+        {"name": "has_account_number", "type": "bool"}
+      ],
+      "error_message": "Account number disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(J)"
+    },
+    {
+      "id": "PHI_LICENSE_NUMBER_DISCLOSURE",
+      "category": "PHI Detection",
+      "description": "License numbers must not be disclosed",
+      "formula_readable": "¬has_license_number",
+      "formula": {"==": ["has_license_number", false]},
+      "variables": [
+        {"name": "has_license_number", "type": "bool"}
+      ],
+      "error_message": "License number disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(K)"
+    },
+    {
+      "id": "DEIDENTIFY_ALL_18",
+      "category": "De-Identification",
+      "description": "All 18 HIPAA identifiers must be removed for Safe Harbor",
+      "formula_readable": "is_deidentified → phi_count = 0",
+      "formula": {
+        "implies": [
+          {"==": ["is_deidentified", true]},
+          {"==": ["phi_count", 0]}
+        ]
+      },
+      "variables": [
+        {"name": "is_deidentified", "type": "bool"},
+        {"name": "phi_count", "type": "int"}
+      ],
+      "error_message": "Claims de-identification but PHI elements remain",
+      "citation": "HIPAA §164.514(b)(2)"
+    },
+    {
+      "id": "DEIDENTIFY_DATES_GENERALIZED",
+      "category": "De-Identification",
+      "description": "Dates must be generalized to year only",
+      "formula_readable": "has_specific_date → is_deidentified",
+      "formula": {
+        "or": [
+          {"==": ["has_specific_date", false]},
+          {"==": ["is_deidentified", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_specific_date", "type": "bool"},
+        {"name": "is_deidentified", "type": "bool"}
+      ],
+      "error_message": "Specific dates present without de-identification claim",
+      "citation": "HIPAA §164.514(b)(2)(i)(C)"
+    },
+    {
+      "id": "DEIDENTIFY_AGE_THRESHOLD",
+      "category": "De-Identification",
+      "description": "Ages over 89 must be aggregated",
+      "formula_readable": "patient_age > 89 → age_aggregated",
+      "formula": {
+        "or": [
+          {"<=": ["patient_age", 89]},
+          {"==": ["age_aggregated", true]}
+        ]
+      },
+      "variables": [
+        {"name": "patient_age", "type": "int"},
+        {"name": "age_aggregated", "type": "bool"}
+      ],
+      "error_message": "Patient age over 89 not aggregated",
+      "citation": "HIPAA §164.514(b)(2)(i)(C)"
+    },
+    {
+      "id": "DEIDENTIFY_RARE_CONDITIONS",
+      "category": "De-Identification",
+      "description": "Rare conditions (prevalence <5%) should be suppressed",
+      "formula_readable": "has_rare_condition → condition_generalized",
+      "formula": {
+        "or": [
+          {"==": ["has_rare_condition", false]},
+          {"==": ["condition_generalized", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_rare_condition", "type": "bool"},
+        {"name": "condition_generalized", "type": "bool"}
+      ],
+      "error_message": "Rare condition disclosed without generalization",
+      "citation": "HIPAA §164.514(b)(1)"
+    },
+    {
+      "id": "DEIDENTIFY_GEOGRAPHIC",
+      "category": "De-Identification",
+      "description": "Geographic data must be limited to state or larger",
+      "formula_readable": "¬(has_city ∧ ¬is_deidentified)",
+      "formula": {
+        "or": [
+          {"==": ["has_city", false]},
+          {"==": ["is_deidentified", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_city", "type": "bool"},
+        {"name": "is_deidentified", "type": "bool"}
+      ],
+      "error_message": "City-level geographic data disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(B)"
+    },
+    {
+      "id": "DEIDENTIFY_ZIP_CODE",
+      "category": "De-Identification",
+      "description": "ZIP codes must be truncated to first 3 digits",
+      "formula_readable": "¬has_full_zip",
+      "formula": {"==": ["has_full_zip", false]},
+      "variables": [
+        {"name": "has_full_zip", "type": "bool"}
+      ],
+      "error_message": "Full ZIP code disclosed",
+      "citation": "HIPAA §164.514(b)(2)(i)(B)"
+    },
+    {
+      "id": "DEIDENTIFY_SAFE_HARBOR",
+      "category": "De-Identification",
+      "description": "Safe Harbor method requires removal of all identifiers",
+      "formula_readable": "claims_safe_harbor → (phi_count = 0 ∧ has_safeguard_mention)",
+      "formula": {
+        "implies": [
+          {"==": ["claims_safe_harbor", true]},
+          {
+            "and": [
+              {"==": ["phi_count", 0]},
+              {"==": ["has_safeguard_mention", true]}
+            ]
+          }
+        ]
+      },
+      "variables": [
+        {"name": "claims_safe_harbor", "type": "bool"},
+        {"name": "phi_count", "type": "int"},
+        {"name": "has_safeguard_mention", "type": "bool"}
+      ],
+      "error_message": "Claims Safe Harbor but requirements not met",
+      "citation": "HIPAA §164.514(b)(2)"
+    },
+    {
+      "id": "DEIDENTIFY_EXPERT_DETERMINATION",
+      "category": "De-Identification",
+      "description": "Expert determination requires statistical evidence",
+      "formula_readable": "claims_expert_determination → has_statistical_mention",
+      "formula": {
+        "implies": [
+          {"==": ["claims_expert_determination", true]},
+          {"==": ["has_statistical_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "claims_expert_determination", "type": "bool"},
+        {"name": "has_statistical_mention", "type": "bool"}
+      ],
+      "error_message": "Claims Expert Determination without statistical basis",
+      "citation": "HIPAA §164.514(b)(1)"
+    },
+    {
+      "id": "DEIDENTIFY_NO_DERIVED_DATA",
+      "category": "De-Identification",
+      "description": "No data that could derive identifiers",
+      "formula_readable": "is_deidentified → ¬has_derived_identifier",
+      "formula": {
+        "implies": [
+          {"==": ["is_deidentified", true]},
+          {"==": ["has_derived_identifier", false]}
+        ]
+      },
+      "variables": [
+        {"name": "is_deidentified", "type": "bool"},
+        {"name": "has_derived_identifier", "type": "bool"}
+      ],
+      "error_message": "De-identified data contains derivable identifier",
+      "citation": "HIPAA §164.514(b)(2)(ii)"
+    },
+    {
+      "id": "ACCESS_RECIPIENT_AUTHORIZED",
+      "category": "Access Control",
+      "description": "Recipients must be authorized healthcare workers",
+      "formula_readable": "has_phi → recipient_authorized",
+      "formula": {
+        "implies": [
+          {"==": ["has_phi", true]},
+          {"==": ["recipient_authorized", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "recipient_authorized", "type": "bool"}
+      ],
+      "error_message": "PHI disclosed to unauthorized recipient",
+      "citation": "HIPAA §164.502(a)"
+    },
+    {
+      "id": "ACCESS_ROLE_PHYSICIAN",
+      "category": "Access Control",
+      "description": "Treatment details require physician-level access",
+      "formula_readable": "has_treatment_details → (recipient_role_physician ∨ is_deidentified)",
+      "formula": {
+        "implies": [
+          {"==": ["has_treatment_details", true]},
+          {
+            "or": [
+              {"==": ["recipient_role_physician", true]},
+              {"==": ["is_deidentified", true]}
+            ]
+          }
+        ]
+      },
+      "variables": [
+        {"name": "has_treatment_details", "type": "bool"},
+        {"name": "recipient_role_physician", "type": "bool"},
+        {"name": "is_deidentified", "type": "bool"}
+      ],
+      "error_message": "Treatment details disclosed to non-physician",
+      "citation": "HIPAA §164.502(b)"
+    },
+    {
+      "id": "ACCESS_MINIMUM_NECESSARY",
+      "category": "Access Control",
+      "description": "Only minimum necessary information disclosed",
+      "formula_readable": "phi_count ≤ minimum_necessary_threshold",
+      "formula": {"<=": ["phi_count", {"var": "minimum_necessary_threshold"}]},
+      "variables": [
+        {"name": "phi_count", "type": "int"},
+        {"name": "minimum_necessary_threshold", "type": "int"}
+      ],
+      "error_message": "Exceeds minimum necessary standard",
+      "citation": "HIPAA §164.502(b)(1)"
+    },
+    {
+      "id": "ACCESS_EXTERNAL_ENCRYPTION",
+      "category": "Access Control",
+      "description": "External disclosures require encryption mention",
+      "formula_readable": "recipient_external → has_encryption_mention",
+      "formula": {
+        "implies": [
+          {"==": ["recipient_external", true]},
+          {"==": ["has_encryption_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "recipient_external", "type": "bool"},
+        {"name": "has_encryption_mention", "type": "bool"}
+      ],
+      "error_message": "External disclosure without encryption safeguard",
+      "citation": "HIPAA §164.312(a)(2)(iv)"
+    },
+    {
+      "id": "ACCESS_AUDIT_TIMESTAMP",
+      "category": "Access Control",
+      "description": "All outputs must include timestamp for audit",
+      "formula_readable": "has_timestamp",
+      "formula": {"==": ["has_timestamp", true]},
+      "variables": [
+        {"name": "has_timestamp", "type": "bool"}
+      ],
+      "error_message": "Missing timestamp for audit trail",
+      "citation": "HIPAA §164.312(b)"
+    },
+    {
+      "id": "ACCESS_AUDIT_USER_ID",
+      "category": "Access Control",
+      "description": "Outputs must identify requesting user",
+      "formula_readable": "has_user_identification",
+      "formula": {"==": ["has_user_identification", true]},
+      "variables": [
+        {"name": "has_user_identification", "type": "bool"}
+      ],
+      "error_message": "Missing user identification for audit",
+      "citation": "HIPAA §164.312(b)"
+    },
+    {
+      "id": "ACCESS_SESSION_VALID",
+      "category": "Access Control",
+      "description": "Must verify session validity",
+      "formula_readable": "has_session_reference → session_valid",
+      "formula": {
+        "implies": [
+          {"==": ["has_session_reference", true]},
+          {"==": ["session_valid", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_session_reference", "type": "bool"},
+        {"name": "session_valid", "type": "bool"}
+      ],
+      "error_message": "Invalid or expired session reference",
+      "citation": "HIPAA §164.312(d)"
+    },
+    {
+      "id": "ACCESS_LEAST_PRIVILEGE",
+      "category": "Access Control",
+      "description": "Role-based access must follow least privilege",
+      "formula_readable": "recipient_role_admin → ¬has_treatment_details",
+      "formula": {
+        "implies": [
+          {"==": ["recipient_role_admin", true]},
+          {"==": ["has_treatment_details", false]}
+        ]
+      },
+      "variables": [
+        {"name": "recipient_role_admin", "type": "bool"},
+        {"name": "has_treatment_details", "type": "bool"}
+      ],
+      "error_message": "Admin role accessing treatment details violates least privilege",
+      "citation": "HIPAA §164.312(a)(1)"
+    },
+    {
+      "id": "SAFEGUARD_INTERNAL_USE",
+      "category": "Safeguards",
+      "description": "Must mention internal use restriction",
+      "formula_readable": "has_phi → has_internal_use_mention",
+      "formula": {
+        "implies": [
+          {"==": ["has_phi", true]},
+          {"==": ["has_internal_use_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_internal_use_mention", "type": "bool"}
+      ],
+      "error_message": "Missing 'internal use only' safeguard statement",
+      "citation": "HIPAA §164.530(c)"
+    },
+    {
+      "id": "SAFEGUARD_PHI_REDACTED",
+      "category": "Safeguards",
+      "description": "Must acknowledge PHI handling",
+      "formula_readable": "has_safeguard_mention",
+      "formula": {"==": ["has_safeguard_mention", true]},
+      "variables": [
+        {"name": "has_safeguard_mention", "type": "bool"}
+      ],
+      "error_message": "Missing PHI safeguard acknowledgment",
+      "citation": "HIPAA §164.530(c)"
+    },
+    {
+      "id": "SAFEGUARD_RISK_SCORE",
+      "category": "Safeguards",
+      "description": "Risk score must be acceptable",
+      "formula_readable": "risk_score ≤ 5",
+      "formula": {"<=": ["risk_score", 5]},
+      "variables": [
+        {"name": "risk_score", "type": "int"}
+      ],
+      "error_message": "Risk score exceeds acceptable threshold",
+      "citation": "HIPAA §164.308(a)(1)(ii)(A)"
+    },
+    {
+      "id": "SAFEGUARD_ENCRYPTION_PHI",
+      "category": "Safeguards",
+      "description": "PHI transmission must mention encryption",
+      "formula_readable": "has_phi → has_encryption_mention",
+      "formula": {
+        "implies": [
+          {"==": ["has_phi", true]},
+          {"==": ["has_encryption_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_encryption_mention", "type": "bool"}
+      ],
+      "error_message": "PHI present without encryption safeguard",
+      "citation": "HIPAA §164.312(e)(2)(ii)"
+    },
+    {
+      "id": "SAFEGUARD_NO_PRINT_MENTION",
+      "category": "Safeguards",
+      "description": "No printing instructions for PHI",
+      "formula_readable": "¬(has_phi ∧ has_print_instruction)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["has_phi", true]},
+            {"==": ["has_print_instruction", true]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_print_instruction", "type": "bool"}
+      ],
+      "error_message": "Print instruction with PHI present",
+      "citation": "HIPAA §164.310(d)(1)"
+    },
+    {
+      "id": "SAFEGUARD_HIPAA_COMPLIANT",
+      "category": "Safeguards",
+      "description": "Output should reference HIPAA compliance",
+      "formula_readable": "has_phi → has_hipaa_mention",
+      "formula": {
+        "implies": [
+          {"==": ["has_phi", true]},
+          {"==": ["has_hipaa_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_hipaa_mention", "type": "bool"}
+      ],
+      "error_message": "PHI present without HIPAA compliance mention",
+      "citation": "HIPAA §164.530(b)"
+    },
+    {
+      "id": "SAFEGUARD_ACCESS_LOG",
+      "category": "Safeguards",
+      "description": "Must mention access logging",
+      "formula_readable": "has_treatment_details → has_audit_mention",
+      "formula": {
+        "implies": [
+          {"==": ["has_treatment_details", true]},
+          {"==": ["has_audit_mention", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_treatment_details", "type": "bool"},
+        {"name": "has_audit_mention", "type": "bool"}
+      ],
+      "error_message": "Treatment details without audit trail mention",
+      "citation": "HIPAA §164.312(b)"
+    },
+    {
+      "id": "SAFEGUARD_POLICY_REFERENCE",
+      "category": "Safeguards",
+      "description": "Should reference applicable policies",
+      "formula_readable": "has_sensitive_diagnosis → has_policy_reference",
+      "formula": {
+        "implies": [
+          {"==": ["has_sensitive_diagnosis", true]},
+          {"==": ["has_policy_reference", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_sensitive_diagnosis", "type": "bool"},
+        {"name": "has_policy_reference", "type": "bool"}
+      ],
+      "error_message": "Sensitive diagnosis without policy reference",
+      "citation": "HIPAA §164.530(i)"
+    },
+    {
+      "id": "BREACH_UNAUTHORIZED_DISCLOSURE",
+      "category": "Breach Notification",
+      "description": "Unauthorized PHI disclosure triggers breach protocol",
+      "formula_readable": "¬(has_phi ∧ ¬recipient_authorized)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["has_phi", true]},
+            {"==": ["recipient_authorized", false]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "recipient_authorized", "type": "bool"}
+      ],
+      "error_message": "BREACH: Unauthorized PHI disclosure detected",
+      "citation": "HIPAA §164.402"
+    },
+    {
+      "id": "BREACH_SENSITIVE_DATA",
+      "category": "Breach Notification",
+      "description": "Sensitive data breach requires immediate notification",
+      "formula_readable": "¬(has_sensitive_diagnosis ∧ ¬is_deidentified ∧ ¬recipient_authorized)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["has_sensitive_diagnosis", true]},
+            {"==": ["is_deidentified", false]},
+            {"==": ["recipient_authorized", false]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "has_sensitive_diagnosis", "type": "bool"},
+        {"name": "is_deidentified", "type": "bool"},
+        {"name": "recipient_authorized", "type": "bool"}
+      ],
+      "error_message": "BREACH: Sensitive medical data exposed",
+      "citation": "HIPAA §164.404"
+    },
+    {
+      "id": "BREACH_NO_SAFEGUARDS",
+      "category": "Breach Notification",
+      "description": "PHI without safeguards is reportable breach",
+      "formula_readable": "¬(has_phi ∧ ¬has_safeguard_mention)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["has_phi", true]},
+            {"==": ["has_safeguard_mention", false]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_safeguard_mention", "type": "bool"}
+      ],
+      "error_message": "BREACH: PHI disclosed without safeguards",
+      "citation": "HIPAA §164.402(1)"
+    },
+    {
+      "id": "BREACH_ESCALATION",
+      "category": "Breach Notification",
+      "description": "Multiple violations require escalation",
+      "formula_readable": "violation_count ≤ 2",
+      "formula": {"<=": ["violation_count", 2]},
+      "variables": [
+        {"name": "violation_count", "type": "int"}
+      ],
+      "error_message": "ESCALATE: Multiple violations require CISO notification",
+      "citation": "HIPAA §164.308(a)(6)"
+    },
+    {
+      "id": "AUDIT_PROOF_CERTIFICATE",
+      "category": "Audit",
+      "description": "All verifications must generate proof",
+      "formula_readable": "verification_complete → has_proof",
+      "formula": {
+        "implies": [
+          {"==": ["verification_complete", true]},
+          {"==": ["has_proof", true]}
+        ]
+      },
+      "variables": [
+        {"name": "verification_complete", "type": "bool"},
+        {"name": "has_proof", "type": "bool"}
+      ],
+      "error_message": "Verification without proof certificate",
+      "citation": "HIPAA §164.530(j)"
+    },
+    {
+      "id": "AUDIT_RULE_IDENTIFICATION",
+      "category": "Audit",
+      "description": "Violations must cite specific rule",
+      "formula_readable": "has_violation → has_rule_citation",
+      "formula": {
+        "implies": [
+          {"==": ["has_violation", true]},
+          {"==": ["has_rule_citation", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_violation", "type": "bool"},
+        {"name": "has_rule_citation", "type": "bool"}
+      ],
+      "error_message": "Violation without rule identification",
+      "citation": "HIPAA §164.530(j)(2)"
+    },
+    {
+      "id": "AUDIT_RETENTION",
+      "category": "Audit",
+      "description": "Records must be retained 6 years",
+      "formula_readable": "has_retention_policy",
+      "formula": {"==": ["has_retention_policy", true]},
+      "variables": [
+        {"name": "has_retention_policy", "type": "bool"}
+      ],
+      "error_message": "Missing retention policy compliance",
+      "citation": "HIPAA §164.530(j)(2)"
+    },
+    {
+      "id": "AUDIT_IMMUTABILITY",
+      "category": "Audit",
+      "description": "Audit records must be immutable",
+      "formula_readable": "has_audit_mention → audit_immutable",
+      "formula": {
+        "implies": [
+          {"==": ["has_audit_mention", true]},
+          {"==": ["audit_immutable", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_audit_mention", "type": "bool"},
+        {"name": "audit_immutable", "type": "bool"}
+      ],
+      "error_message": "Audit trail not immutable",
+      "citation": "HIPAA §164.312(c)(1)"
+    },
+    {
+      "id": "AUDIT_CHAIN_OF_CUSTODY",
+      "category": "Audit",
+      "description": "Must maintain chain of custody",
+      "formula_readable": "has_phi → has_chain_of_custody",
+      "formula": {
+        "implies": [
+          {"==": ["has_phi", true]},
+          {"==": ["has_chain_of_custody", true]}
+        ]
+      },
+      "variables": [
+        {"name": "has_phi", "type": "bool"},
+        {"name": "has_chain_of_custody", "type": "bool"}
+      ],
+      "error_message": "PHI without chain of custody documentation",
+      "citation": "HIPAA §164.530(j)(1)"
+    },
+    {
+      "id": "TREATMENT_ALLERGY_DISCLOSURE",
+      "category": "Clinical Safety",
+      "description": "Allergy info to external requires authorization",
+      "formula_readable": "¬(has_allergy_info ∧ recipient_external ∧ ¬recipient_authorized)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["has_allergy_info", true]},
+            {"==": ["recipient_external", true]},
+            {"==": ["recipient_authorized", false]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "has_allergy_info", "type": "bool"},
+        {"name": "recipient_external", "type": "bool"},
+        {"name": "recipient_authorized", "type": "bool"}
+      ],
+      "error_message": "Allergy information disclosed externally without authorization",
+      "citation": "HIPAA §164.506"
+    }
+  ],
+  "extractors": {
+    "has_patient_name": {
+      "type": "boolean",
+      "keywords": ["jane doe", "john doe", "patient name", "mr.", "mrs.", "ms."],
+      "negation_words": ["de-identified", "redacted", "removed", "anonymized", "patient #"]
+    },
+    "has_dob": {
+      "type": "boolean",
+      "keywords": ["dob:", "date of birth", "born", "1985-", "1990-", "1970-", "1960-", "1995-", "/19", "-19"],
+      "negation_words": ["redacted", "removed"]
+    },
+    "has_street_address": {
+      "type": "boolean",
+      "keywords": ["main st", " street,", " street ", "avenue", " ave,", " ave ", "boulevard", " blvd,", " blvd ", " road,", " road ", " rd,", " lane,", " lane ", " ln,", " drive,", " drive ", "123 main", "456 oak", "789 elm"],
+      "negation_words": ["redacted", "removed"]
+    },
+    "has_phone_number": {
+      "type": "boolean",
+      "keywords": ["555-", "phone", "tel:", "call ", "-0123", "-1234", "-5678"],
+      "negation_words": ["redacted"]
+    },
+    "has_ssn": {
+      "type": "boolean",
+      "keywords": ["ssn", "social security", "xxx-xx-"]
+    },
+    "has_mrn": {
+      "type": "boolean",
+      "keywords": ["mrn:", "medical record number", "patient id:", "id: 12345", "record #"]
+    },
+    "has_email": {
+      "type": "boolean",
+      "keywords": ["@gmail", "@yahoo", "@hotmail", "@hospital", ".com", ".org", "email:"]
+    },
+    "has_full_zip": {
+      "type": "boolean",
+      "keywords": ["90210", "10001", "60601", "94102", "zip:", "zipcode"]
+    },
+    "has_city": {
+      "type": "boolean",
+      "keywords": ["anytown", "new york", "los angeles", "chicago", "houston", ", ca", ", ny", ", tx"]
+    },
+    "has_specific_date": {
+      "type": "boolean",
+      "keywords": ["dob:", "date of birth", "admission date", "discharge date", "admitted:", "discharged:", "born:", "service date", "visit date", "procedure date"],
+      "negation_words": ["report generated", "generated:", "timestamp:", "created:"]
+    },
+    "is_deidentified": {
+      "type": "boolean",
+      "keywords": ["de-identified", "deidentified", "de identified", "anonymized", "phi removed", "hipaa §164.514", "safe harbor", "identifiers removed"]
+    },
+    "recipient_authorized": {
+      "type": "boolean",
+      "keywords": ["dr.", "doctor", "physician", "attending", "clinician", "nurse", "authorized", "internal use only", "clinical staff"]
+    },
+    "recipient_external": {
+      "type": "boolean",
+      "keywords": ["external", "vendor", "third party", "outside", "partner", "contractor"]
+    },
+    "recipient_role_physician": {
+      "type": "boolean",
+      "keywords": ["dr.", "doctor", "physician", "attending physician", "md", "m.d."]
+    },
+    "recipient_role_admin": {
+      "type": "boolean",
+      "keywords": ["role: admin", "role:admin", "administrator", "billing department", "billing staff", "receptionist", "front desk"]
+    },
+    "has_treatment_details": {
+      "type": "boolean",
+      "keywords": ["insulin", "medication", "treatment", "therapy", "dose", "dosage", "mg", "units", "regimen", "prescription"]
+    },
+    "has_diagnosis": {
+      "type": "boolean",
+      "keywords": ["diagnosis", "diagnosed", "icd-10", "icd-", "condition", "diabetes", "hypertension"]
+    },
+    "has_sensitive_diagnosis": {
+      "type": "boolean",
+      "keywords": ["hiv", "aids", "mental health", "psychiatric", "substance abuse", "addiction", "std", "genetic"]
+    },
+    "has_allergy_info": {
+      "type": "boolean",
+      "keywords": ["allergy", "allergies", "allergic", "penicillin", "sulfa", "latex"]
+    },
+    "has_safeguard_mention": {
+      "type": "boolean",
+      "keywords": ["safeguard", "phi removed", "redacted", "de-identified", "hipaa", "protected", "compliant", "privacy"]
+    },
+    "has_internal_use_mention": {
+      "type": "boolean",
+      "keywords": ["internal use only", "internal use", "authorized internal", "internal review", "not for distribution"]
+    },
+    "has_encryption_mention": {
+      "type": "boolean",
+      "keywords": ["encrypted", "encryption", "secure", "tls", "ssl", "https"]
+    },
+    "has_hipaa_mention": {
+      "type": "boolean",
+      "keywords": ["hipaa", "§164", "164.5", "privacy rule", "security rule"]
+    },
+    "has_timestamp": {
+      "type": "boolean",
+      "keywords": ["generated:", "timestamp:", "date:", "2025-", "report generated", "created:"]
+    },
+    "has_user_identification": {
+      "type": "boolean",
+      "keywords": ["clinician:", "dr.", "user:", "requested by", "physician:", "prepared for", "attending:"]
+    },
+    "has_audit_mention": {
+      "type": "boolean",
+      "keywords": ["audit", "logged", "tracked", "recorded", "trail"]
+    },
+    "has_print_instruction": {
+      "type": "boolean",
+      "keywords": ["print", "printer", "hardcopy", "hard copy", "fax"]
+    },
+    "has_policy_reference": {
+      "type": "boolean",
+      "keywords": ["policy", "protocol", "procedure", "guideline", "per policy"]
+    },
+    "has_rare_condition": {
+      "type": "boolean",
+      "keywords": ["rare", "orphan disease", "genetic disorder", "1 in ", "prevalence"]
+    },
+    "condition_generalized": {
+      "type": "boolean",
+      "keywords": ["condition type", "category", "class of", "generalized"]
+    },
+    "phi_count": {
+      "type": "int",
+      "computed": true
+    },
+    "risk_score": {
+      "type": "int",
+      "computed": true
+    },
+    "has_phi": {
+      "type": "boolean",
+      "computed": true
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "name": "customer-service-v1",
+  "version": "1.0.0",
+  "description": "Customer service response guardrails and compliance",
+  "constraints": [
+    {
+      "id": "DISCOUNT_LIMIT",
+      "category": "Pricing",
+      "description": "Maximum discount authority",
+      "formula_readable": "discount_percentage <= 10",
+      "formula": {"<=": ["discount_percentage", 10]},
+      "variables": [
+        {"name": "discount_percentage", "type": "real"}
+      ],
+      "error_message": "Discount exceeds 10% authorization limit",
+      "citation": "Customer Service Policy"
+    },
+    {
+      "id": "DELIVERY_PROMISE",
+      "category": "Fulfillment",
+      "description": "Minimum delivery time promise",
+      "formula_readable": "delivery_hours >= 48",
+      "formula": {">=": ["delivery_hours", 48]},
+      "variables": [
+        {"name": "delivery_hours", "type": "int"}
+      ],
+      "error_message": "Cannot promise delivery under 48 hours",
+      "citation": "Operations SLA"
+    },
+    {
+      "id": "NO_FAULT_ADMISSION",
+      "category": "Legal",
+      "description": "Prohibition on admitting fault",
+      "formula_readable": "¬admits_fault",
+      "formula": {"==": ["admits_fault", false]},
+      "variables": [
+        {"name": "admits_fault", "type": "bool"}
+      ],
+      "error_message": "Response admits fault/liability",
+      "citation": "Legal Department Guidelines"
+    },
+    {
+      "id": "NO_INTERNAL_INFO",
+      "category": "Security",
+      "description": "Prohibition on revealing internal processes",
+      "formula_readable": "¬reveals_internal",
+      "formula": {"==": ["reveals_internal", false]},
+      "variables": [
+        {"name": "reveals_internal", "type": "bool"}
+      ],
+      "error_message": "Response reveals internal systems or processes",
+      "citation": "Information Security Policy"
+    },
+    {
+      "id": "REFUND_POLICY",
+      "category": "Refunds",
+      "description": "Refund must follow policy",
+      "formula_readable": "(refund_amount <= order_value) ∧ (refund_amount <= 500)",
+      "formula": {
+        "and": [
+          {"<=": ["refund_amount", {"var": "order_value"}]},
+          {"<=": ["refund_amount", 500]}
+        ]
+      },
+      "variables": [
+        {"name": "refund_amount", "type": "real"},
+        {"name": "order_value", "type": "real"}
+      ],
+      "error_message": "Refund exceeds policy limits",
+      "citation": "Refund Policy"
+    }
+  ],
+  "extractors": {
+    "discount_percentage": {
+      "type": "float",
+      "pattern": "(\\d+(?:\\.\\d+)?)%\\s*(?:discount|off)"
+    },
+    "delivery_hours": {
+      "type": "int",
+      "pattern": "(\\d+)\\s*(?:hours?|hrs?)"
+    },
+    "admits_fault": {
+      "type": "boolean",
+      "keywords": ["our fault", "we apologize for our", "our mistake", "entirely our fault", "we caused"]
+    },
+    "reveals_internal": {
+      "type": "boolean",
+      "keywords": ["our system", "automated", "sorting system", "internal process", "backend", "our algorithm"]
+    },
+    "overnight_delivery": {
+      "type": "boolean",
+      "keywords": ["overnight", "next day", "24 hour"]
+    }
+  }
+}

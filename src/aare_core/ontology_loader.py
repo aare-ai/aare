@@ -14,19 +14,29 @@ class OntologyLoader:
         self.ontology_dir = Path(
             ontology_dir or os.environ.get("ONTOLOGY_DIR", "./ontologies")
         )
+        # Bundled ontologies directory (shipped with package)
+        self._bundled_dir = Path(__file__).parent / "ontologies"
 
     @lru_cache(maxsize=10)
     def load(self, ontology_name):
-        """Load ontology from filesystem or return default"""
+        """Load ontology from filesystem, bundled package, or return default"""
+        # First check user-specified directory
         ontology_file = self.ontology_dir / f"{ontology_name}.json"
+
+        # Then check bundled ontologies
+        bundled_file = self._bundled_dir / f"{ontology_name}.json"
 
         try:
             if ontology_file.exists():
                 with open(ontology_file, "r") as f:
                     ontology = json.load(f)
                 return self._validate_ontology(ontology)
+            elif bundled_file.exists():
+                with open(bundled_file, "r") as f:
+                    ontology = json.load(f)
+                return self._validate_ontology(ontology)
         except Exception as e:
-            logging.warning(f"Failed to load ontology from {ontology_file}: {e}")
+            logging.warning(f"Failed to load ontology {ontology_name}: {e}")
 
         # Fall back to example ontology
         logging.info(f"Using example ontology for {ontology_name}")
@@ -199,7 +209,12 @@ class OntologyLoader:
         """List all available ontologies"""
         ontologies = set(["example"])
 
-        # Add any from the ontology directory
+        # Add bundled ontologies
+        if self._bundled_dir.exists():
+            for f in self._bundled_dir.glob("*.json"):
+                ontologies.add(f.stem)
+
+        # Add any from the user ontology directory
         if self.ontology_dir.exists():
             for f in self.ontology_dir.glob("*.json"):
                 ontologies.add(f.stem)

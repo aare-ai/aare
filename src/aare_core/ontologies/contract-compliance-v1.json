@@ -1,0 +1,115 @@
+{
+  "name": "contract-compliance-v1",
+  "version": "1.0.0",
+  "description": "Contract terms and legal compliance constraints",
+  "constraints": [
+    {
+      "id": "USURY_LIMIT",
+      "category": "Interest Rate",
+      "description": "Maximum annual interest rate (usury law)",
+      "formula_readable": "rejects_terms ∨ (annual_rate <= 25)",
+      "formula": {
+        "or": [
+          {"==": ["rejects_terms", true]},
+          {"<=": ["annual_rate", 25]}
+        ]
+      },
+      "variables": [
+        {"name": "rejects_terms", "type": "bool"},
+        {"name": "annual_rate", "type": "real"}
+      ],
+      "error_message": "Interest rate exceeds 25% APR usury limit",
+      "citation": "State Usury Laws"
+    },
+    {
+      "id": "PAYMENT_TERMS",
+      "category": "Payment",
+      "description": "Maximum payment terms",
+      "formula_readable": "payment_days <= 120",
+      "formula": {"<=": ["payment_days", 120]},
+      "variables": [
+        {"name": "payment_days", "type": "int"}
+      ],
+      "error_message": "Payment terms exceed 120-day maximum",
+      "citation": "Commercial Code"
+    },
+    {
+      "id": "LATE_FEE_CAP",
+      "category": "Fees",
+      "description": "Maximum monthly late fee",
+      "formula_readable": "rejects_terms ∨ (monthly_late_fee <= 1.5)",
+      "formula": {
+        "or": [
+          {"==": ["rejects_terms", true]},
+          {"<=": ["monthly_late_fee", 1.5]}
+        ]
+      },
+      "variables": [
+        {"name": "rejects_terms", "type": "bool"},
+        {"name": "monthly_late_fee", "type": "real"}
+      ],
+      "error_message": "Monthly late fee exceeds 1.5% cap",
+      "citation": "Consumer Protection Laws"
+    },
+    {
+      "id": "GOVERNING_LAW",
+      "category": "Jurisdiction",
+      "description": "Valid governing law jurisdiction",
+      "formula_readable": "rejects_terms ∨ valid_jurisdiction",
+      "formula": {
+        "or": [
+          {"==": ["rejects_terms", true]},
+          {"==": ["valid_jurisdiction", true]}
+        ]
+      },
+      "variables": [
+        {"name": "rejects_terms", "type": "bool"},
+        {"name": "valid_jurisdiction", "type": "bool"}
+      ],
+      "error_message": "Invalid or unenforceable jurisdiction",
+      "citation": "Conflict of Laws"
+    },
+    {
+      "id": "UNCONSCIONABILITY",
+      "category": "Fairness",
+      "description": "Terms must not be unconscionable",
+      "formula_readable": "¬unconscionable_terms",
+      "formula": {"==": ["unconscionable_terms", false]},
+      "variables": [
+        {"name": "unconscionable_terms", "type": "bool"}
+      ],
+      "error_message": "Contract contains unconscionable terms",
+      "citation": "UCC § 2-302"
+    }
+  ],
+  "extractors": {
+    "annual_rate": {
+      "type": "float",
+      "pattern": "(\\d+(?:\\.\\d+)?)%?\\s*(?:apr|annual)"
+    },
+    "monthly_rate": {
+      "type": "float",
+      "pattern": "(\\d+(?:\\.\\d+)?)%?\\s*(?:monthly|per month)"
+    },
+    "payment_days": {
+      "type": "int",
+      "pattern": "net\\s*(\\d+)"
+    },
+    "monthly_late_fee": {
+      "type": "float",
+      "pattern": "(\\d+(?:\\.\\d+)?)%?\\s*(?:monthly|late)"
+    },
+    "valid_jurisdiction": {
+      "type": "boolean",
+      "keywords": ["delaware", "new york", "california", "texas"]
+    },
+    "unconscionable_terms": {
+      "type": "boolean",
+      "keywords": ["forfeit all", "waive all rights", "unlimited liability"]
+    },
+    "rejects_terms": {
+      "type": "boolean",
+      "keywords": ["require revision", "requires revision", "exceeding", "violate", "not enforceable", "unenforceable", "recommend reducing", "cannot accept", "reject"]
+    }
+  }
+}

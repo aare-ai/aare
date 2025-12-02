@@ -1,0 +1,142 @@
+{
+  "name": "medical-safety-v1",
+  "version": "1.0.0",
+  "description": "Medical safety constraints for prescription and treatment recommendations",
+  "constraints": [
+    {
+      "id": "EGFR_METFORMIN",
+      "category": "Kidney Function",
+      "description": "Metformin contraindication based on kidney function",
+      "formula_readable": "(egfr >= 45) ∨ ¬recommends_metformin",
+      "formula": {
+        "or": [
+          {">=": ["egfr", 45]},
+          {"==": ["recommends_metformin", false]}
+        ]
+      },
+      "variables": [
+        {"name": "egfr", "type": "int"},
+        {"name": "recommends_metformin", "type": "bool"}
+      ],
+      "error_message": "Metformin contraindicated when eGFR < 45 ml/min",
+      "citation": "FDA Metformin Label Update 2016"
+    },
+    {
+      "id": "EGFR_DOSE_LIMIT",
+      "category": "Dosage",
+      "description": "Maximum metformin dose based on kidney function",
+      "formula_readable": "¬recommends_metformin ∨ (egfr >= 60) ∨ (metformin_dose <= 1000)",
+      "formula": {
+        "or": [
+          {"==": ["recommends_metformin", false]},
+          {">=": ["egfr", 60]},
+          {"<=": ["metformin_dose", 1000]}
+        ]
+      },
+      "variables": [
+        {"name": "egfr", "type": "int"},
+        {"name": "metformin_dose", "type": "int"},
+        {"name": "recommends_metformin", "type": "bool"}
+      ],
+      "error_message": "Maximum metformin dose 1000mg/day when eGFR 45-60",
+      "citation": "FDA Dosing Guidelines"
+    },
+    {
+      "id": "CREATININE_NEPHRO",
+      "category": "Specialist Referral",
+      "description": "Nephrology referral based on creatinine levels",
+      "formula_readable": "(creatinine <= 1.5) ∨ nephro_referral",
+      "formula": {
+        "or": [
+          {"<=": ["creatinine", 1.5]},
+          {"==": ["nephro_referral", true]}
+        ]
+      },
+      "variables": [
+        {"name": "creatinine", "type": "real"},
+        {"name": "nephro_referral", "type": "bool"}
+      ],
+      "error_message": "Creatinine > 1.5 requires nephrology consultation",
+      "citation": "KDIGO Guidelines"
+    },
+    {
+      "id": "DRUG_INTERACTION",
+      "category": "Drug Safety",
+      "description": "Check for contraindicated drug combinations",
+      "formula_readable": "¬(ace_inhibitor ∧ potassium_sparing)",
+      "formula": {
+        "not": {
+          "and": [
+            {"==": ["ace_inhibitor", true]},
+            {"==": ["potassium_sparing", true]}
+          ]
+        }
+      },
+      "variables": [
+        {"name": "ace_inhibitor", "type": "bool"},
+        {"name": "potassium_sparing", "type": "bool"}
+      ],
+      "error_message": "ACE inhibitor with potassium-sparing diuretic risk",
+      "citation": "Drug Interaction Database"
+    },
+    {
+      "id": "HBA1C_TARGET",
+      "category": "Glycemic Control",
+      "description": "Treatment appropriateness based on HbA1c",
+      "formula_readable": "(hba1c <= 7.0) ∨ treatment_escalation",
+      "formula": {
+        "or": [
+          {"<=": ["hba1c", 7.0]},
+          {"==": ["treatment_escalation", true]}
+        ]
+      },
+      "variables": [
+        {"name": "hba1c", "type": "real"},
+        {"name": "treatment_escalation", "type": "bool"}
+      ],
+      "error_message": "HbA1c > 7% may require treatment escalation",
+      "citation": "ADA Standards of Care"
+    }
+  ],
+  "extractors": {
+    "egfr": {
+      "type": "int",
+      "pattern": "egfr[:\\s=]*(\\d+)"
+    },
+    "creatinine": {
+      "type": "float",
+      "pattern": "creatinine[:\\s=]*(\\d+\\.?\\d*)"
+    },
+    "metformin_dose": {
+      "type": "int",
+      "pattern": "metformin[\\s]*(\\d+)\\s*mg"
+    },
+    "recommends_metformin": {
+      "type": "boolean",
+      "keywords": ["metformin", "glucophage"],
+      "negation_words": ["contraindicated", "not recommend", "avoid", "do not", "should not", "cannot"],
+      "check_negation": true
+    },
+    "nephro_referral": {
+      "type": "boolean",
+      "keywords": ["nephrology", "nephrologist", "kidney specialist", "refer to nephro"],
+      "check_negation": false
+    },
+    "ace_inhibitor": {
+      "type": "boolean",
+      "keywords": ["lisinopril", "enalapril", "ramipril", "ace inhibitor"]
+    },
+    "potassium_sparing": {
+      "type": "boolean",
+      "keywords": ["spironolactone", "eplerenone", "triamterene"]
+    },
+    "hba1c": {
+      "type": "float",
+      "pattern": "(?:hba1c|a1c)[:\\s=]*(\\d+\\.?\\d*)%?"
+    },
+    "treatment_escalation": {
+      "type": "boolean",
+      "keywords": ["escalate", "intensify", "add", "increase"]
+    }
+  }
+}
