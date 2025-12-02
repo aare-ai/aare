@@ -37,14 +37,17 @@ pip install "aare-core[server]"
 ### Command Line (Easiest)
 
 ```bash
-# Verify text against bundled mortgage compliance rules (outputs JSON with proof certificate)
-aare-verify --input "DTI is 35%, credit score 720" --ontology mortgage-compliance-v1
+# Verify compliant text (outputs JSON with proof certificate) - this passes
+aare-verify --input "Loan approved: 3% rate, DTI 35%, credit score 720" --ontology mortgage-compliance-v1
+
+# Verify non-compliant text - this fails with violation details
+aare-verify --input "Approved despite DTI of 55%" --ontology mortgage-compliance-v1
 
 # Verify from a file
 aare-verify --file response.txt --ontology hipaa-v1
 
 # Pipe from another command
-echo "The loan amount is $350,000 with DTI of 42%" | aare-verify --ontology fair-lending-v1
+echo "The loan amount is $350,000 with DTI of 35%" | aare-verify --ontology fair-lending-v1
 
 # List all available ontologies (10 bundled + custom)
 aare-ontologies
