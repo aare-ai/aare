@@ -1,23 +1,58 @@
-# aare.ai - Z3 SMT Verification Framework
+# aare-core
 
-Pure framework for verifying LLM outputs using Z3 SMT solver with JSON-defined constraints. This is the core library - for production ontologies and cloud deployments, see the cloud-specific repositories.
+Core verification engine for aare.ai - Z3 SMT solver for LLM compliance verification.
+
+[![PyPI version](https://badge.fury.io/py/aare-core.svg)](https://pypi.org/project/aare-core/)
 
 ## Overview
 
-aare.ai uses formal verification (Z3 SMT solver) to validate LLM outputs against structured constraints. The key innovation is the **Formula Compiler** - constraints are defined entirely in JSON, with no code changes needed.
+aare-core provides formal verification (Z3 SMT solver) to validate LLM outputs against structured constraints. The key innovation is the **Formula Compiler** - constraints are defined entirely in JSON, with no code changes needed.
 
 ```
 JSON Formula → Formula Compiler → Z3 Expression → Formal Verification
 ```
 
+This is the core library used by all cloud deployments:
+- [aare-aws](https://github.com/aare-ai/aare-aws) - AWS Lambda
+- [aare-azure](https://github.com/aare-ai/aare-azure) - Azure Functions
+- [aare-gcp](https://github.com/aare-ai/aare-gcp) - Google Cloud Functions
+- [aare-watsonx](https://github.com/aare-ai/aare-watsonx) - IBM Cloud Code Engine
+
+## Installation
+
+```bash
+pip install aare-core
+```
+
 ## Quick Start
 
-### Option 1: Docker (Recommended)
+### As a Library
+
+```python
+from aare_core import FormulaCompiler, LLMParser, SMTVerifier, OntologyLoader
+
+# Load ontology (verification rules)
+loader = OntologyLoader()
+ontology = loader.load("example")
+
+# Parse LLM output
+parser = LLMParser()
+data = parser.parse("The value is 50, option A is selected.", ontology)
+
+# Verify against constraints
+verifier = SMTVerifier()
+result = verifier.verify(data, ontology)
+
+print(result["verified"])  # True or False
+print(result["violations"])  # List of constraint violations
+```
+
+### With Docker (Self-hosted Server)
 
 ```bash
 # Clone the repository
-git clone https://github.com/aare-ai/aare.git
-cd aare
+git clone https://github.com/aare-ai/aare-core.git
+cd aare-core
 
 # Start with Docker Compose
 docker-compose up -d
@@ -26,25 +61,14 @@ docker-compose up -d
 curl http://localhost:8080/health
 ```
 
-### Option 2: Docker Run
-
-```bash
-docker run -d \
-  --name aare-ai \
-  -p 8080:8080 \
-  -v $(pwd)/ontologies:/app/ontologies:ro \
-  ghcr.io/aare-ai/aare:latest
-```
-
-### Option 3: Run Directly
+### Run Server Directly
 
 ```bash
 # Clone and install
-git clone https://github.com/aare-ai/aare.git
-cd aare
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/aare-ai/aare-core.git
+cd aare-core
+pip install -e .
+pip install flask gunicorn
 
 # Run
 python app.py
@@ -364,24 +388,10 @@ if verification["verified"]:
     return llm_output
 ```
 
-## Cloud Deployments
-
-For managed cloud deployments with production ontologies, see our cloud-specific repositories:
-
-| Repository | Platform | Includes |
-|------------|----------|----------|
-| [aare-aws](https://github.com/aare-ai/aare-aws) | AWS Lambda | Mortgage, HIPAA, Fair Lending ontologies |
-| [aare-azure](https://github.com/aare-ai/aare-azure) | Azure Functions | Coming soon |
-| [aare-gcp](https://github.com/aare-ai/aare-gcp) | Google Cloud Functions | Coming soon |
-| [aare-watsonx](https://github.com/aare-ai/aare-watsonx) | IBM Cloud Code Engine | Coming soon |
-
 ## Running Tests
 
 ```bash
-# Install test dependencies
-pip install pytest z3-solver
-
-# Run all tests
+pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
@@ -392,5 +402,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - Documentation: https://aare.ai/about
-- Issues: https://github.com/aare-ai/aare/issues
+- Issues: https://github.com/aare-ai/aare-core/issues
 - Contact: info@aare.ai
