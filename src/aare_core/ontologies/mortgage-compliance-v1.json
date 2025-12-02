@@ -130,6 +130,20 @@
       ],
       "error_message": "All pricing must be documented - no off-books deals",
       "citation": "UDAAP - Fair Lending"
+    },
+    {
+      "id": "CREDIT_SCORE_MIN",
+      "category": "Credit",
+      "description": "Minimum credit score requirement for approval",
+      "formula_readable": "credit_score ≥ 500",
+      "formula": {
+        ">=": ["credit_score", 500]
+      },
+      "variables": [
+        {"name": "credit_score", "type": "int"}
+      ],
+      "error_message": "Credit score below minimum threshold (500)",
+      "citation": "FHA Minimum Credit Score Guidelines"
     }
   ],
   "extractors": {
