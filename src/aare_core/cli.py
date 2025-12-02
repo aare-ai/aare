@@ -169,7 +169,7 @@ def serve_cli():
         from flask import Flask
     except ImportError:
         print("Error: Flask not installed. Install with:", file=sys.stderr)
-        print("  pip install aare-core[server]", file=sys.stderr)
+        print('  pip install "aare-core[server]"', file=sys.stderr)
         print("  # or", file=sys.stderr)
         print("  pip install flask gunicorn", file=sys.stderr)
         sys.exit(1)

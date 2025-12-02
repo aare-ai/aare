@@ -28,8 +28,8 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Core library only
 pip install aare-core
 
-# With HTTP server support
-pip install aare-core[server]
+# With HTTP server support (quotes required for zsh)
+pip install "aare-core[server]"
 ```
 
 ## Quick Start
@@ -56,7 +56,7 @@ aare-verify --input "..." --ontology mortgage-compliance-v1 --compact
 ### HTTP Server
 
 ```bash
-# Start local server (requires: pip install aare-core[server])
+# Start local server (requires: pip install "aare-core[server]")
 aare-serve
 
 # Or with custom port
