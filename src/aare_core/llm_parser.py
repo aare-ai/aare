@@ -33,11 +33,29 @@ class LLMParser:
         extractor_type = extractor.get('type')
 
         if extractor_type == 'boolean':
+            negation_words = extractor.get('negation_words', [])
+            check_negation = extractor.get('check_negation', True)
+
+            # Check for pattern match (regex-based boolean detection)
+            pattern = extractor.get('pattern')
+            if pattern:
+                compiled = self._get_compiled_pattern(pattern)
+                if compiled:
+                    match = compiled.search(text)
+                    if match:
+                        # Check if any negation words are in context
+                        if check_negation and negation_words:
+                            match_start = match.start()
+                            context_start = max(0, match_start - 30)
+                            context_end = min(len(text_lower), match.end() + 30)
+                            context = text_lower[context_start:context_end]
+                            if any(neg in context for neg in negation_words):
+                                return False
+                        return True
+                    return False
+
             # Check for keyword presence
             keywords = extractor.get('keywords', [])
-            negation_words = extractor.get('negation_words', [])
-            # Some keywords should check for negation, others shouldn't
-            check_negation = extractor.get('check_negation', True)
 
             # Check if any keyword is present without negation
             for kw in keywords:

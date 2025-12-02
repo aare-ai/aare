@@ -846,7 +846,8 @@
     },
     "has_full_zip": {
       "type": "boolean",
-      "keywords": ["90210", "10001", "60601", "94102", "zip:", "zipcode"]
+      "pattern": "\\b\\d{5}(?:-\\d{4})?\\b",
+      "negation_words": ["icd-10", "icd-", "cpt", "patient #", "id:", "#12345", "patient id"]
     },
     "has_city": {
       "type": "boolean",
