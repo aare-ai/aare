@@ -32,21 +32,76 @@ class OntologyLoader:
         logging.info(f"Using example ontology for {ontology_name}")
         return self._get_example_ontology()
 
+    # Valid variable types for Z3
+    VALID_VAR_TYPES = {'bool', 'int', 'real', 'float'}
+    # Maximum formula nesting depth to prevent resource exhaustion
+    MAX_FORMULA_DEPTH = 50
+
     def _validate_ontology(self, ontology):
-        """Validate ontology structure"""
+        """Validate ontology structure with type checking and depth limits"""
         required_fields = ["name", "version", "constraints"]
         for field in required_fields:
             if field not in ontology:
                 raise ValueError(f"Invalid ontology: missing {field}")
 
-        # Validate each constraint has a formula field
-        for constraint in ontology.get("constraints", []):
+        # Type check: constraints must be a list
+        if not isinstance(ontology.get("constraints"), list):
+            raise ValueError("Invalid ontology: 'constraints' must be a list")
+
+        # Validate each constraint
+        for constraint in ontology["constraints"]:
+            if not isinstance(constraint, dict):
+                raise ValueError("Invalid ontology: each constraint must be a dict")
+
+            constraint_id = constraint.get('id', 'unknown')
+
             if "formula" not in constraint:
                 raise ValueError(
-                    f"Invalid ontology: constraint {constraint.get('id', 'unknown')} missing 'formula' field"
+                    f"Invalid ontology: constraint {constraint_id} missing 'formula' field"
                 )
 
+            # Validate formula depth
+            self._validate_formula_depth(constraint["formula"], 0, constraint_id)
+
+            # Validate variables
+            variables = constraint.get("variables", [])
+            if not isinstance(variables, list):
+                raise ValueError(
+                    f"Invalid ontology: constraint {constraint_id} 'variables' must be a list"
+                )
+
+            for var in variables:
+                if not isinstance(var, dict):
+                    raise ValueError(
+                        f"Invalid ontology: constraint {constraint_id} variable must be a dict"
+                    )
+                if "name" not in var or "type" not in var:
+                    raise ValueError(
+                        f"Invalid ontology: constraint {constraint_id} variable missing 'name' or 'type'"
+                    )
+                if var["type"] not in self.VALID_VAR_TYPES:
+                    raise ValueError(
+                        f"Invalid ontology: constraint {constraint_id} variable '{var['name']}' "
+                        f"has invalid type '{var['type']}'. Must be one of: {self.VALID_VAR_TYPES}"
+                    )
+
         return ontology
+
+    def _validate_formula_depth(self, formula, current_depth, constraint_id):
+        """Recursively validate formula depth to prevent resource exhaustion"""
+        if current_depth > self.MAX_FORMULA_DEPTH:
+            raise ValueError(
+                f"Invalid ontology: constraint {constraint_id} formula exceeds "
+                f"maximum depth of {self.MAX_FORMULA_DEPTH}"
+            )
+
+        if isinstance(formula, dict):
+            for key, value in formula.items():
+                if isinstance(value, list):
+                    for item in value:
+                        self._validate_formula_depth(item, current_depth + 1, constraint_id)
+                elif isinstance(value, dict):
+                    self._validate_formula_depth(value, current_depth + 1, constraint_id)
 
     def _get_example_ontology(self):
         """

@@ -2,10 +2,13 @@
 SMT Verifier using Z3 for aare.ai
 Pure formal verification - no regex, no patterns, just math
 """
+import logging
 import time
 from typing import Dict, List, Any
 from z3 import *
 from .formula_compiler import FormulaCompiler
+
+logger = logging.getLogger(__name__)
 
 
 class SMTVerifier:
@@ -20,12 +23,23 @@ class SMTVerifier:
         all_missing_vars = set()
 
         for constraint in ontology['constraints']:
-            result = self._check_constraint(data, constraint)
-            if result['violated']:
-                violations.append(result['violation'])
-                proofs.append(result['proof'])
-            # Track missing variables across all constraints
-            all_missing_vars.update(result.get('missing_vars', []))
+            try:
+                result = self._check_constraint(data, constraint)
+                if result['violated']:
+                    violations.append(result['violation'])
+                    proofs.append(result['proof'])
+                # Track missing variables across all constraints
+                all_missing_vars.update(result.get('missing_vars', []))
+            except Exception as e:
+                constraint_id = constraint.get('id', 'unknown')
+                logger.error(f"Error checking constraint {constraint_id}: {e}", exc_info=True)
+                violations.append({
+                    'constraint_id': constraint_id,
+                    'category': constraint.get('category', 'General'),
+                    'description': constraint.get('description', ''),
+                    'error_message': f'Verification error: {type(e).__name__}',
+                    'error_details': str(e)
+                })
 
         execution_time = int((time.time() - start_time) * 1000)
 
@@ -45,6 +59,7 @@ class SMTVerifier:
     def _check_constraint(self, data: Dict, constraint: Dict) -> Dict[str, Any]:
         """Check a single constraint using Z3"""
         solver = Solver()
+        solver.set("timeout", 5000)  # 5 second timeout to prevent hangs
 
         # Create Z3 variables
         z3_vars = self._create_z3_variables(constraint['variables'], data)
@@ -109,6 +124,9 @@ class SMTVerifier:
                 }
             }
 
+    # Valid variable types for Z3
+    VALID_VAR_TYPES = {'bool', 'int', 'real', 'float'}
+
     def _create_z3_variables(self, var_specs: List, data: Dict) -> Dict:
         """Create Z3 variables based on specifications"""
         z3_vars = {}
@@ -117,14 +135,18 @@ class SMTVerifier:
             var_name = var_spec['name']
             var_type = var_spec['type']
 
+            if var_type not in self.VALID_VAR_TYPES:
+                raise ValueError(
+                    f"Variable '{var_name}' has invalid type '{var_type}'. "
+                    f"Must be one of: {self.VALID_VAR_TYPES}"
+                )
+
             if var_type == 'bool':
                 z3_vars[var_name] = Bool(var_name)
             elif var_type == 'int':
                 z3_vars[var_name] = Int(var_name)
-            elif var_type in ['real', 'float']:
+            else:  # 'real' or 'float'
                 z3_vars[var_name] = Real(var_name)
-            else:
-                z3_vars[var_name] = Real(var_name)  # Default to Real
 
         return z3_vars
 
@@ -142,7 +164,8 @@ class SMTVerifier:
                     result[var_name] = float(value.as_decimal(6))
                 else:
                     result[var_name] = str(value)
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to evaluate variable {var_name}: {e}")
                 result[var_name] = None
         return result
 

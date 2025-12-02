@@ -7,11 +7,19 @@ Run with:
     # or
     gunicorn --bind 0.0.0.0:8080 app:app
 """
-from flask import Flask, request, jsonify
-import json
-import uuid
+import logging
 import os
+import uuid
 from datetime import datetime
+
+from flask import Flask, request, jsonify
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from handlers.ontology_loader import OntologyLoader
 from handlers.llm_parser import LLMParser
@@ -75,18 +83,24 @@ def verify():
     if request.method == "OPTIONS":
         return "", 204
 
+    verification_id = str(uuid.uuid4())
+
     try:
         # Parse request body
         request_json = request.get_json(silent=True)
 
         if not request_json:
+            logger.warning(f"[{verification_id}] Invalid JSON in request body")
             return jsonify({"error": "Invalid JSON in request body"}), 400
 
         llm_output = request_json.get("llm_output", "")
         ontology_name = request_json.get("ontology", "mortgage-compliance-v1")
 
         if not llm_output:
+            logger.warning(f"[{verification_id}] Missing llm_output")
             return jsonify({"error": "llm_output is required"}), 400
+
+        logger.info(f"[{verification_id}] Verification request: ontology={ontology_name}, input_length={len(llm_output)}")
 
         # Load ontology
         ontology = ontology_loader.load(ontology_name)
@@ -109,17 +123,25 @@ def verify():
             },
             "proof": verification_result["proof"],
             "solver": "Constraint Logic",
-            "verification_id": str(uuid.uuid4()),
+            "verification_id": verification_id,
             "execution_time_ms": verification_result["execution_time_ms"],
             "timestamp": datetime.utcnow().isoformat()
         }
 
+        logger.info(
+            f"[{verification_id}] Verification complete: verified={verification_result['verified']}, "
+            f"violations={len(verification_result['violations'])}, "
+            f"execution_time_ms={verification_result['execution_time_ms']}"
+        )
+
         return jsonify(response_body), 200
 
     except Exception as e:
+        logger.error(f"[{verification_id}] Verification failed: {type(e).__name__}: {e}", exc_info=True)
         return jsonify({
             "error": str(e),
-            "type": type(e).__name__
+            "type": type(e).__name__,
+            "verification_id": verification_id
         }), 500
 
 

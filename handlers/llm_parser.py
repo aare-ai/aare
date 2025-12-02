@@ -2,8 +2,14 @@
 LLM output parser for aare.ai
 Extracts structured data from unstructured LLM text
 """
+import logging
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Pattern
+
+logger = logging.getLogger(__name__)
+
+# Cache for compiled regex patterns
+_compiled_patterns: Dict[str, re.Pattern] = {}
 
 class LLMParser:
     def parse(self, text: str, ontology: Dict) -> Dict[str, Any]:
@@ -60,21 +66,42 @@ class LLMParser:
             pattern = extractor.get('pattern')
             if not pattern:
                 return None
-            
-            match = re.search(pattern, text_lower)
-            if match:
+
+            compiled = self._get_compiled_pattern(pattern)
+            if compiled is None:
+                return None
+
+            match = compiled.search(text_lower)
+            if match and match.groups():
                 return self._parse_numeric(match, text, extractor_type)
-        
+
         elif extractor_type == 'string':
             # Extract string value
             pattern = extractor.get('pattern')
             if pattern:
-                match = re.search(pattern, text_lower)
+                compiled = self._get_compiled_pattern(pattern)
+                if compiled is None:
+                    return None
+
+                match = compiled.search(text_lower)
                 if match:
                     return match.group(1) if match.groups() else match.group(0)
         
         return None
-    
+
+    def _get_compiled_pattern(self, pattern: str) -> Optional[Pattern]:
+        """Get compiled regex pattern with caching and validation"""
+        if pattern in _compiled_patterns:
+            return _compiled_patterns[pattern]
+
+        try:
+            compiled = re.compile(pattern, re.IGNORECASE)
+            _compiled_patterns[pattern] = compiled
+            return compiled
+        except re.error as e:
+            logger.error(f"Invalid regex pattern '{pattern}': {e}")
+            return None
+
     def _parse_numeric(self, match, original_text, value_type):
         """Parse numeric values from regex match"""
         value_str = match.group(1).replace(',', '')

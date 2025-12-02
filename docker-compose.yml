@@ -10,7 +10,9 @@ services:
     environment:
       - PORT=8080
       - ONTOLOGY_DIR=/app/ontologies
-      - CORS_ORIGINS=*
+      # IMPORTANT: Configure allowed origins for production
+      # Example: CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+      - CORS_ORIGINS=https://aare.ai,https://www.aare.ai,http://localhost:8000,http://localhost:3000
       - DEBUG=false
     volumes:
       # Mount custom ontologies (optional)
