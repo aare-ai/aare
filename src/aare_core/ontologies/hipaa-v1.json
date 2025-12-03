@@ -846,8 +846,8 @@
     },
     "has_full_zip": {
       "type": "boolean",
-      "pattern": "\\b\\d{5}(?:-\\d{4})?\\b",
-      "negation_words": ["icd-10", "icd-", "cpt", "patient #", "id:", "#12345", "patient id"]
+      "pattern": "(?:,\\s*[A-Z]{2}\\s+|zip(?:code)?[:\\s]+)(\\d{5}(?:-\\d{4})?)",
+      "negation_words": []
     },
     "has_city": {
       "type": "boolean",
@@ -938,17 +938,157 @@
       "type": "boolean",
       "keywords": ["condition type", "category", "class of", "generalized"]
     },
-    "phi_count": {
-      "type": "int",
-      "computed": true
+    "has_device_id": {
+      "type": "boolean",
+      "keywords": ["device id", "serial number", "imei", "mac address", "device identifier"],
+      "negation_words": ["redacted"]
     },
-    "risk_score": {
+    "has_patient_url": {
+      "type": "boolean",
+      "keywords": ["patient portal", "myhealth", "patient/", "/patient?id=", "patientid="],
+      "negation_words": []
+    },
+    "has_ip_address": {
+      "type": "boolean",
+      "pattern": "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
+      "negation_words": []
+    },
+    "has_biometric": {
+      "type": "boolean",
+      "keywords": ["fingerprint", "retinal", "iris scan", "voice print", "biometric"],
+      "negation_words": []
+    },
+    "has_photo_reference": {
+      "type": "boolean",
+      "keywords": ["photo attached", "photograph", "image of patient", "patient photo", "face photo"],
+      "negation_words": []
+    },
+    "has_vehicle_id": {
+      "type": "boolean",
+      "keywords": ["vin:", "vehicle id", "license plate", "plate number"],
+      "negation_words": []
+    },
+    "has_account_number": {
+      "type": "boolean",
+      "keywords": ["account number", "acct #", "account #", "bank account", "insurance id"],
+      "negation_words": ["redacted"]
+    },
+    "has_license_number": {
+      "type": "boolean",
+      "keywords": ["license number", "driver's license", "license #", "dln:"],
+      "negation_words": ["redacted"]
+    },
+    "patient_age": {
       "type": "int",
-      "computed": true
+      "pattern": "(?:age[:\\s]+|(?:is|was)\\s+)(\\d{1,3})(?:\\s*(?:years?|yrs?))?",
+      "default": 0
+    },
+    "age_aggregated": {
+      "type": "boolean",
+      "keywords": ["90+", "90 or older", "over 89", "90 years or older", "age 90+"],
+      "default": false
+    },
+    "has_session_reference": {
+      "type": "boolean",
+      "keywords": ["session:", "session id", "token:", "session token"],
+      "default": false
+    },
+    "has_violation": {
+      "type": "boolean",
+      "keywords": ["violation", "non-compliant", "breach", "failed verification"],
+      "default": false
+    },
+    "has_statistical_mention": {
+      "type": "boolean",
+      "keywords": ["statistical", "probability", "k-anonymity", "l-diversity", "re-identification risk"],
+      "default": false
+    },
+    "claims_safe_harbor": {
+      "type": "boolean",
+      "keywords": ["safe harbor", "§164.514(b)(2)", "safe-harbor"],
+      "default": false
+    },
+    "claims_expert_determination": {
+      "type": "boolean",
+      "keywords": ["expert determination", "§164.514(b)(1)", "statistical determination"],
+      "default": false
+    },
+    "has_derived_identifier": {
+      "type": "boolean",
+      "keywords": ["derived from", "calculated from", "based on patient", "linked to"],
+      "negation_words": ["de-identified"],
+      "default": false
+    },
+    "phi_count": {
+      "type": "computed",
+      "formula": {
+        "count_true": [
+          "has_patient_name", "has_dob", "has_street_address", "has_phone_number",
+          "has_ssn", "has_mrn", "has_email", "has_full_zip", "has_city",
+          "has_device_id", "has_ip_address", "has_biometric", "has_photo_reference",
+          "has_vehicle_id", "has_account_number", "has_license_number"
+        ]
+      },
+      "default": 0
     },
     "has_phi": {
-      "type": "boolean",
-      "computed": true
+      "type": "computed",
+      "formula": {
+        "any": [
+          "has_patient_name", "has_dob", "has_street_address", "has_phone_number",
+          "has_ssn", "has_mrn", "has_email", "has_full_zip", "has_city",
+          "has_device_id", "has_ip_address", "has_biometric", "has_photo_reference",
+          "has_vehicle_id", "has_account_number", "has_license_number"
+        ]
+      },
+      "default": false
+    },
+    "risk_score": {
+      "type": "computed",
+      "formula": {
+        "add": [
+          {"mul": ["phi_count", 2]},
+          {"if": ["has_sensitive_diagnosis", 3, 0]},
+          {"if": [{"all": ["has_treatment_details", {"not": "is_deidentified"}]}, 2, 0]}
+        ]
+      },
+      "default": 0
+    },
+    "minimum_necessary_threshold": {
+      "type": "computed",
+      "default": 3
+    },
+    "verification_complete": {
+      "type": "computed",
+      "default": true
+    },
+    "has_proof": {
+      "type": "computed",
+      "default": true
+    },
+    "has_rule_citation": {
+      "type": "computed",
+      "default": true
+    },
+    "has_retention_policy": {
+      "type": "computed",
+      "default": true
+    },
+    "audit_immutable": {
+      "type": "computed",
+      "default": true
+    },
+    "has_chain_of_custody": {
+      "type": "computed",
+      "default": true
+    },
+    "session_valid": {
+      "type": "computed",
+      "default": true
+    },
+    "violation_count": {
+      "type": "computed",
+      "default": 0
     }
   }
 }
