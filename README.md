@@ -1,5 +1,13 @@
 # aare-core
 
+**Formal verification for LLM compliance - the same approach AWS launched in Bedrock Guardrails (Dec 2024).**
+
+Built this independently. Z3 SMT solver validates AI outputs against regulatory constraints (HIPAA, fair lending, trading) with mathematical proofs, not pattern matching.
+
+[Live Demo](https://aare.ai) | [HIPAA Ontology (76 rules)](https://aare.ai/docs-hipaa.html) | [Why This Matters](https://aare.ai/why-automated-reasoning.html)
+
+---
+
 Core verification engine for aare.ai - Z3 SMT solver for LLM compliance verification.
 
 [![PyPI version](https://badge.fury.io/py/aare-core.svg)](https://pypi.org/project/aare-core/)
