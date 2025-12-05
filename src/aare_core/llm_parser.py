@@ -238,10 +238,10 @@ class LLMParser:
                     if check_negation and negation_words:
                         # Check for negation context around the keyword
                         kw_pos = text_lower.find(kw)
-                        # Look at surrounding context (15 chars before keyword only)
-                        # This prevents unrelated "no" words from triggering false negatives
-                        context_start = max(0, kw_pos - 15)
-                        context_end = kw_pos + len(kw)
+                        # Look at surrounding context (30 chars before AND after keyword)
+                        # to catch phrases like "metformin is contraindicated"
+                        context_start = max(0, kw_pos - 30)
+                        context_end = min(len(text_lower), kw_pos + len(kw) + 30)
                         context = text_lower[context_start:context_end]
 
                         # Only check specific negation words from the extractor config
