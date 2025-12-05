@@ -101,7 +101,7 @@
   "extractors": {
     "egfr": {
       "type": "int",
-      "pattern": "egfr[:\\s=]*(\\d+)"
+      "pattern": "egfr[:\\s=]*(?:of\\s+)?(\\d+)"
     },
     "creatinine": {
       "type": "float",
