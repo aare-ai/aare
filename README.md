@@ -138,8 +138,7 @@ gunicorn --bind 0.0.0.0:8080 app:app
 │  │  └──────────┘  └──────────┘  └────────────────────┘     │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                              ↓                                │
-│                    Local Filesystem                           │
-│                   (./ontologies/*.json)                       │
+│              Bundled Ontologies + Custom ($ONTOLOGY_DIR)      │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -301,7 +300,7 @@ aare-verify --input "Your response" --ontology hipaa-v1
 
 ## Creating Custom Ontologies
 
-Create your own verification rules by adding JSON files to the `ontologies/` directory.
+Create your own verification rules in a custom directory and set `ONTOLOGY_DIR` to point to it.
 
 > **Full Documentation**: See the comprehensive [Rule Authoring Guide](docs/RULE_AUTHORING_GUIDE.md) for detailed instructions, examples, and best practices. Also available at [aare.ai/docs](https://aare.ai/docs.html).
 

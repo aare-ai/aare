@@ -118,7 +118,7 @@ class OntologyLoader:
         Return example ontology demonstrating the framework.
 
         This is a generic example showing how to define constraints.
-        For production use, create your own ontology JSON files in the ontologies/ directory.
+        For production use, create your own ontology JSON files and set ONTOLOGY_DIR.
         """
         return {
             "name": "example",

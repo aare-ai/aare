@@ -35,6 +35,3 @@ build/
 .env
 *.local.json
 
-# Keep ontologies directory but ignore custom files (except example)
-ontologies/*.json
-!ontologies/example-custom.json

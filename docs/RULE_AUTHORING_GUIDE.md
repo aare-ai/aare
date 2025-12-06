@@ -832,8 +832,8 @@ If a variable wasn't found in the text, it appears in warnings:
 
 ## Additional Resources
 
-- [aare-core README](../aare-core/README.md) - Full technical documentation
-- [Bundled Ontologies](../aare-core/ontologies/) - Production examples
+- [aare-core README](../README.md) - Full technical documentation
+- [Bundled Ontologies](../src/aare_core/ontologies/) - Production examples
 - [Z3 Documentation](https://microsoft.github.io/z3guide/) - Z3 theorem prover
 
 ---
