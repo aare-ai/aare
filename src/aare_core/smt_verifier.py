@@ -1,12 +1,31 @@
 import logging
 import time
-from typing import Dict, List, Any
-from z3 import *
+from typing import Dict, List, Any, Set
+
+from z3 import (
+    Solver, Bool, Int, Real, Not, sat,
+    is_bool, is_int, is_real, is_true, is_int_value, is_rational_value
+)
+
 from .formula_compiler import FormulaCompiler
 
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# SMT solver timeout in milliseconds (prevents hangs on complex formulas)
+SMT_SOLVER_TIMEOUT_MS = 5000
+
+# Valid variable types for Z3
+VALID_VAR_TYPES: Set[str] = {'bool', 'int', 'real', 'float'}
+
+
 class SMTVerifier:
+    """Verifies data against ontology constraints using Z3 SMT solver"""
+
     def __init__(self):
         self.compiler = FormulaCompiler()
 
@@ -54,7 +73,7 @@ class SMTVerifier:
     def _check_constraint(self, data: Dict, constraint: Dict) -> Dict[str, Any]:
         """Check a single constraint using Z3"""
         solver = Solver()
-        solver.set("timeout", 5000)  # 5 second timeout to prevent hangs
+        solver.set("timeout", SMT_SOLVER_TIMEOUT_MS)
 
         # Create Z3 variables
         z3_vars = self._create_z3_variables(constraint['variables'], data)
@@ -119,10 +138,7 @@ class SMTVerifier:
                 }
             }
 
-    # Valid variable types for Z3
-    VALID_VAR_TYPES = {'bool', 'int', 'real', 'float'}
-
-    def _create_z3_variables(self, var_specs: List, data: Dict) -> Dict:
+    def _create_z3_variables(self, var_specs: List[Dict], data: Dict) -> Dict:
         """Create Z3 variables based on specifications"""
         z3_vars = {}
 
@@ -130,10 +146,10 @@ class SMTVerifier:
             var_name = var_spec['name']
             var_type = var_spec['type']
 
-            if var_type not in self.VALID_VAR_TYPES:
+            if var_type not in VALID_VAR_TYPES:
                 raise ValueError(
                     f"Variable '{var_name}' has invalid type '{var_type}'. "
-                    f"Must be one of: {self.VALID_VAR_TYPES}"
+                    f"Must be one of: {VALID_VAR_TYPES}"
                 )
 
             if var_type == 'bool':

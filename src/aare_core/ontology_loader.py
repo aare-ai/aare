@@ -35,8 +35,13 @@ class OntologyLoader:
                 with open(bundled_file, "r") as f:
                     ontology = json.load(f)
                 return self._validate_ontology(ontology)
-        except Exception as e:
+        except json.JSONDecodeError as e:
+            logging.warning(f"Failed to parse ontology {ontology_name}: Invalid JSON: {e}")
+        except (FileNotFoundError, PermissionError, OSError) as e:
             logging.warning(f"Failed to load ontology {ontology_name}: {e}")
+        except ValueError as e:
+            # Validation errors from _validate_ontology
+            logging.warning(f"Invalid ontology {ontology_name}: {e}")
 
         # Fall back to example ontology
         logging.info(f"Using example ontology for {ontology_name}")

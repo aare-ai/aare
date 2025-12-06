@@ -3,12 +3,42 @@ LLM output parser for aare.ai
 Extracts structured data from unstructured LLM text
 """
 import logging
+import operator
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple, Union, Pattern
+from typing import Dict, Any, Optional, List, Tuple, Union, Pattern, Callable, Set
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# Context window sizes for text analysis
+NEGATION_CONTEXT_WINDOW = 30  # Characters around keyword to check for negation
+KEYWORD_SEARCH_CONTEXT = 100  # Characters after keyword to search for values
+
+# Confidence scores for different extraction methods
+class ConfidenceScores:
+    """Confidence scores for different extraction methods"""
+    PATTERN_MATCH = 0.95
+    ENUM_EXACT = 0.90
+    ENUM_FUZZY = 0.70
+    KEYWORD_MULTIPLE = 0.95  # 3+ keywords match
+    KEYWORD_DOUBLE = 0.85    # 2 keywords match
+    KEYWORD_SINGLE = 0.75    # 1 keyword match
+    BOOLEAN_FALSE = 0.60     # Boolean false default
+    BOOLEAN_TRUE_NO_MATCH = 0.50
+    LIST_MANY = 0.90         # 3+ items
+    LIST_SOME = 0.80         # 1-2 items
+    LIST_EMPTY = 0.50
+    DATE_ISO = 0.90          # ISO format date
+    DATE_OTHER = 0.75
+    NUMERIC = 0.90
+    DEFAULT = 0.70
+    COMPUTED = 1.0           # Computed fields have 100% confidence
 
 # Cache for compiled regex patterns
 _compiled_patterns: Dict[str, re.Pattern] = {}
@@ -118,60 +148,60 @@ class LLMParser:
         Calculate confidence score for an extraction.
 
         Factors affecting confidence:
-        - Exact pattern match: 0.95
-        - Keyword match: 0.80
-        - Multiple keywords match: 0.90
-        - Fuzzy/partial match: 0.60
-        - Default value used: 0.30
+        - Exact pattern match: high confidence
+        - Keyword match: medium-high confidence
+        - Multiple keywords match: higher confidence
+        - Fuzzy/partial match: lower confidence
+        - Default value used: low confidence
         """
         extractor_type = extractor.get('type')
 
         # Pattern-based extractors (high confidence)
         if extractor.get('pattern'):
-            return 0.95
+            return ConfidenceScores.PATTERN_MATCH
 
         # Enum with exact match
         if extractor_type == 'enum':
             choices = extractor.get('choices', {})
             if value in choices:
-                return 0.90
-            return 0.70
+                return ConfidenceScores.ENUM_EXACT
+            return ConfidenceScores.ENUM_FUZZY
 
         # Boolean keyword extraction
         if extractor_type == 'boolean':
             keywords = extractor.get('keywords', [])
-            # Count how many keywords matched
-            matches = sum(1 for kw in keywords if kw.lower() in text_lower)
+            # Count how many keywords matched (pre-lowercase for efficiency)
+            keywords_lower = [kw.lower() for kw in keywords]
+            matches = sum(1 for kw in keywords_lower if kw in text_lower)
             if matches >= 3:
-                return 0.95
+                return ConfidenceScores.KEYWORD_MULTIPLE
             elif matches >= 2:
-                return 0.85
+                return ConfidenceScores.KEYWORD_DOUBLE
             elif matches == 1:
-                return 0.75
-            return 0.50 if value else 0.60  # False has slightly higher confidence
+                return ConfidenceScores.KEYWORD_SINGLE
+            return ConfidenceScores.BOOLEAN_TRUE_NO_MATCH if value else ConfidenceScores.BOOLEAN_FALSE
 
         # List extraction
         if extractor_type == 'list' and isinstance(value, list):
             if len(value) >= 3:
-                return 0.90
+                return ConfidenceScores.LIST_MANY
             elif len(value) >= 1:
-                return 0.80
-            return 0.50
+                return ConfidenceScores.LIST_SOME
+            return ConfidenceScores.LIST_EMPTY
 
         # Date/datetime extraction
-        if extractor_type in ('date', 'datetime'):
+        if extractor_type in {'date', 'datetime'}:
             # ISO format dates have higher confidence
-            if isinstance(value, str):
-                if re.match(r'\d{4}-\d{2}-\d{2}', value):
-                    return 0.90
-            return 0.75
+            if isinstance(value, str) and re.match(r'\d{4}-\d{2}-\d{2}', value):
+                return ConfidenceScores.DATE_ISO
+            return ConfidenceScores.DATE_OTHER
 
         # Numeric types
-        if extractor_type in ('int', 'float', 'money', 'percentage'):
-            return 0.90
+        if extractor_type in {'int', 'float', 'money', 'percentage'}:
+            return ConfidenceScores.NUMERIC
 
         # Default
-        return 0.70
+        return ConfidenceScores.DEFAULT
 
     def _find_source_text(self, text: str, text_lower: str, extractor: Dict, value: Any) -> str:
         """Find the source text that was matched"""
@@ -202,7 +232,9 @@ class LLMParser:
 
         return str(value)
 
-    def _extract_field(self, text, text_lower, extractor):
+    def _extract_field(
+        self, text: str, text_lower: str, extractor: Dict[str, Any]
+    ) -> Optional[Any]:
         """Extract a single field based on extractor configuration"""
         extractor_type = extractor.get('type')
 
@@ -219,11 +251,9 @@ class LLMParser:
                     if match:
                         # Check if any negation words are in context
                         if check_negation and negation_words:
-                            match_start = match.start()
-                            context_start = max(0, match_start - 30)
-                            context_end = min(len(text_lower), match.end() + 30)
-                            context = text_lower[context_start:context_end]
-                            if any(neg in context for neg in negation_words):
+                            if self._has_negation_in_context(
+                                text_lower, match.start(), match.end(), negation_words
+                            ):
                                 return False
                         return True
                     return False
@@ -236,16 +266,10 @@ class LLMParser:
                 if kw in text_lower:
                     # Only check negation for recommendation-type keywords
                     if check_negation and negation_words:
-                        # Check for negation context around the keyword
                         kw_pos = text_lower.find(kw)
-                        # Look at surrounding context (30 chars before AND after keyword)
-                        # to catch phrases like "metformin is contraindicated"
-                        context_start = max(0, kw_pos - 30)
-                        context_end = min(len(text_lower), kw_pos + len(kw) + 30)
-                        context = text_lower[context_start:context_end]
-
-                        # Only check specific negation words from the extractor config
-                        if any(neg in context for neg in negation_words):
+                        if self._has_negation_in_context(
+                            text_lower, kw_pos, kw_pos + len(kw), negation_words
+                        ):
                             continue  # Try next keyword instead of returning False
 
                     # Found a keyword without negation
@@ -315,7 +339,29 @@ class LLMParser:
             logger.error(f"Invalid regex pattern '{pattern}': {e}")
             return None
 
-    def _parse_numeric(self, match, original_text, value_type):
+    def _has_negation_in_context(
+        self, text_lower: str, start: int, end: int, negation_words: List[str]
+    ) -> bool:
+        """
+        Check if any negation words appear in context around a match.
+
+        Args:
+            text_lower: Lowercased text to search
+            start: Start position of the match
+            end: End position of the match
+            negation_words: List of negation words to check for
+
+        Returns:
+            True if negation word found in context
+        """
+        context_start = max(0, start - NEGATION_CONTEXT_WINDOW)
+        context_end = min(len(text_lower), end + NEGATION_CONTEXT_WINDOW)
+        context = text_lower[context_start:context_end]
+        return any(neg in context for neg in negation_words)
+
+    def _parse_numeric(
+        self, match: re.Match, original_text: str, value_type: str
+    ) -> Optional[Union[int, float]]:
         """Parse numeric values from regex match"""
         value_str = match.group(1).replace(',', '')
 
@@ -369,13 +415,13 @@ class LLMParser:
         search_text = text
         if keywords:
             # Find text near any keyword
+            text_lower = text.lower()
             for keyword in keywords:
                 kw_lower = keyword.lower()
-                text_lower = text.lower()
                 if kw_lower in text_lower:
-                    # Get context around keyword (100 chars after)
+                    # Get context around keyword
                     pos = text_lower.find(kw_lower)
-                    search_text = text[pos:pos + 100]
+                    search_text = text[pos:pos + KEYWORD_SEARCH_CONTEXT]
                     break
 
         # Try all standard date patterns
@@ -603,7 +649,7 @@ class LLMParser:
             if include_confidence:
                 extracted[field] = ExtractionResult(
                     value=value,
-                    confidence=1.0,
+                    confidence=ConfidenceScores.COMPUTED,
                     source='computed',
                     extractor_type='computed'
                 )
@@ -658,9 +704,9 @@ class LLMParser:
 
         return extracted
 
-    def _extract_formula_dependencies(self, formula: Any) -> set:
+    def _extract_formula_dependencies(self, formula: Any) -> Set[str]:
         """Extract field names referenced in a formula"""
-        deps = set()
+        deps: Set[str] = set()
         if isinstance(formula, str):
             deps.add(formula)
         elif isinstance(formula, dict):
@@ -672,7 +718,139 @@ class LLMParser:
                     deps.update(self._extract_formula_dependencies(value))
         return deps
 
-    def _evaluate_formula(self, formula: Dict, extracted: Dict, get_value) -> Any:
+    # ==========================================================================
+    # Formula Evaluation - Refactored into smaller methods
+    # ==========================================================================
+
+    # Mapping of comparison operators to their functions
+    _COMPARISON_OPS: Dict[str, Callable[[Any, Any], bool]] = {
+        'gt': operator.gt,
+        '>': operator.gt,
+        'gte': operator.ge,
+        '>=': operator.ge,
+        'lt': operator.lt,
+        '<': operator.lt,
+        'lte': operator.le,
+        '<=': operator.le,
+    }
+
+    def _normalize_args(self, args: Any) -> List[Any]:
+        """Ensure args is always a list"""
+        return args if isinstance(args, list) else [args]
+
+    def _resolve_value(
+        self, arg: Any, extracted: Dict, get_value: Callable, default: Any = None
+    ) -> Any:
+        """
+        Resolve a formula argument to its actual value.
+
+        Args can be:
+        - A dict (nested formula) -> recursively evaluate
+        - A string (field reference) -> look up with get_value
+        - A literal value -> return as-is
+        """
+        if isinstance(arg, dict):
+            return self._evaluate_formula(arg, extracted, get_value)
+        elif isinstance(arg, str):
+            return get_value(arg, default) if default is not None else get_value(arg)
+        return arg
+
+    def _resolve_args(
+        self, args: List[Any], extracted: Dict, get_value: Callable, default: Any = None
+    ) -> List[Any]:
+        """Resolve a list of formula arguments to their actual values"""
+        return [self._resolve_value(a, extracted, get_value, default) for a in args]
+
+    def _eval_comparison(
+        self, op: str, args: List, extracted: Dict, get_value: Callable
+    ) -> Optional[bool]:
+        """Evaluate a comparison operation (gt, gte, lt, lte)"""
+        if len(args) != 2:
+            return None
+        left = self._resolve_value(args[0], extracted, get_value)
+        right = self._resolve_value(args[1], extracted, get_value)
+        if left is None or right is None:
+            return None
+        return self._COMPARISON_OPS[op](left, right)
+
+    def _eval_arithmetic(
+        self, op: str, args: List, extracted: Dict, get_value: Callable
+    ) -> Optional[Union[int, float]]:
+        """Evaluate an arithmetic operation (add, mul)"""
+        if len(args) < 2:
+            return None
+        values = self._resolve_args(args, extracted, get_value)
+        if not all(v is not None for v in values):
+            return None
+
+        if op in ('add', '+'):
+            return sum(values)
+        elif op in ('mul', '*'):
+            result = 1
+            for v in values:
+                result *= v
+            return result
+        return None
+
+    def _eval_logical(
+        self, op: str, args: Any, extracted: Dict, get_value: Callable
+    ) -> Optional[bool]:
+        """Evaluate a logical operation (any, all, and, or)"""
+        fields = self._normalize_args(args)
+        values = self._resolve_args(fields, extracted, get_value, default=False)
+        non_null = [v for v in values if v is not None]
+
+        if not non_null:
+            return None
+
+        if op in ('any', 'or'):
+            return any(non_null)
+        elif op in ('all', 'and'):
+            return all(non_null)
+        return None
+
+    def _eval_counting(
+        self, op: str, args: Any, get_value: Callable
+    ) -> int:
+        """Evaluate a counting operation (count_true, count_fields, sum)"""
+        fields = self._normalize_args(args)
+
+        if op == 'count_true':
+            return sum(1 for f in fields if get_value(f, False) is True)
+        elif op == 'count_fields':
+            return sum(1 for f in fields if get_value(f) is not None)
+        elif op == 'sum':
+            total = 0
+            for f in fields:
+                val = get_value(f, 0) if isinstance(f, str) else f
+                if isinstance(val, (int, float)):
+                    total += val
+            return total
+        return 0
+
+    def _eval_conditional(
+        self, args: List, extracted: Dict, get_value: Callable
+    ) -> Any:
+        """Evaluate a conditional (if-then-else) expression"""
+        if len(args) != 3:
+            return None
+
+        condition, then_val, else_val = args
+        cond_result = self._resolve_value(condition, extracted, get_value)
+
+        if cond_result:
+            return self._resolve_value(then_val, extracted, get_value)
+        else:
+            return self._resolve_value(else_val, extracted, get_value)
+
+    def _eval_not(
+        self, args: Any, extracted: Dict, get_value: Callable
+    ) -> Optional[bool]:
+        """Evaluate a NOT operation"""
+        val = self._resolve_value(args, extracted, get_value)
+        return not val if val is not None else None
+
+    def _evaluate_formula(self, formula: Dict, extracted: Dict, get_value: Callable) -> Any:
         """
         Evaluate a formula expression.
 
@@ -682,13 +860,11 @@ class LLMParser:
         - sum: {"sum": ["field1", "field2"]} - sum numeric values
         - any: {"any": ["field1", "field2"]} - true if any is true
         - all: {"all": ["field1", "field2"]} - true if all are true
-        - gt: {"gt": ["field1", value]} - field > value
-        - gte: {"gte": ["field1", value]} - field >= value
-        - lt: {"lt": ["field1", value]} - field < value
-        - lte: {"lte": ["field1", value]} - field <= value
-        - add: {"add": [arg1, arg2]} - addition
-        - mul: {"mul": [arg1, arg2]} - multiplication
+        - gt/gte/lt/lte: comparison operations
+        - add/mul: arithmetic operations
         - if: {"if": [condition, then_value, else_value]} - conditional
+        - not: {"not": expr} - logical negation
+        - and/or: logical operations
         """
         if not isinstance(formula, dict) or len(formula) != 1:
             return None
@@ -696,150 +872,30 @@ class LLMParser:
         op = list(formula.keys())[0]
         args = formula[op]
 
-        if op == 'count_true':
-            # Count how many boolean fields are True
-            fields = args if isinstance(args, list) else [args]
-            return sum(1 for f in fields if get_value(f, False) is True)
+        # Dispatch to specialized evaluators
+        if op in self._COMPARISON_OPS:
+            return self._eval_comparison(op, args, extracted, get_value)
 
-        elif op == 'count_fields':
-            # Count how many fields have non-null values
-            fields = args if isinstance(args, list) else [args]
-            return sum(1 for f in fields if get_value(f) is not None)
+        elif op in ('add', '+', 'mul', '*'):
+            return self._eval_arithmetic(op, args, extracted, get_value)
 
-        elif op == 'sum':
-            # Sum numeric fields
-            fields = args if isinstance(args, list) else [args]
-            total = 0
-            for f in fields:
-                val = get_value(f, 0) if isinstance(f, str) else f
-                if isinstance(val, (int, float)):
-                    total += val
-            return total
+        elif op in ('any', 'all', 'and', 'or'):
+            return self._eval_logical(op, args, extracted, get_value)
 
-        elif op == 'any':
-            # True if any field is True
-            fields = args if isinstance(args, list) else [args]
-            values = []
-            for f in fields:
-                if isinstance(f, dict):
-                    values.append(self._evaluate_formula(f, extracted, get_value))
-                else:
-                    values.append(get_value(f, False))
-            return any(v for v in values if v is not None)
-
-        elif op == 'all':
-            # True if all fields are True
-            fields = args if isinstance(args, list) else [args]
-            values = []
-            for f in fields:
-                if isinstance(f, dict):
-                    values.append(self._evaluate_formula(f, extracted, get_value))
-                else:
-                    values.append(get_value(f, False))
-            return all(v for v in values if v is not None)
-
-        elif op in ('gt', '>'):
-            if len(args) == 2:
-                left = get_value(args[0]) if isinstance(args[0], str) else args[0]
-                right = get_value(args[1]) if isinstance(args[1], str) else args[1]
-                return left > right if left is not None and right is not None else None
-
-        elif op in ('gte', '>='):
-            if len(args) == 2:
-                left = get_value(args[0]) if isinstance(args[0], str) else args[0]
-                right = get_value(args[1]) if isinstance(args[1], str) else args[1]
-                return left >= right if left is not None and right is not None else None
-
-        elif op in ('lt', '<'):
-            if len(args) == 2:
-                left = get_value(args[0]) if isinstance(args[0], str) else args[0]
-                right = get_value(args[1]) if isinstance(args[1], str) else args[1]
-                return left < right if left is not None and right is not None else None
-
-        elif op in ('lte', '<='):
-            if len(args) == 2:
-                left = get_value(args[0]) if isinstance(args[0], str) else args[0]
-                right = get_value(args[1]) if isinstance(args[1], str) else args[1]
-                return left <= right if left is not None and right is not None else None
-
-        elif op in ('add', '+'):
-            if len(args) >= 2:
-                values = []
-                for a in args:
-                    if isinstance(a, dict):
-                        values.append(self._evaluate_formula(a, extracted, get_value))
-                    elif isinstance(a, str):
-                        values.append(get_value(a))
-                    else:
-                        values.append(a)
-                if all(v is not None for v in values):
-                    return sum(values)
-
-        elif op in ('mul', '*'):
-            if len(args) >= 2:
-                values = []
-                for a in args:
-                    if isinstance(a, dict):
-                        values.append(self._evaluate_formula(a, extracted, get_value))
-                    elif isinstance(a, str):
-                        values.append(get_value(a))
-                    else:
-                        values.append(a)
-                if all(v is not None for v in values):
-                    result = 1
-                    for v in values:
-                        result *= v
-                    return result
+        elif op in ('count_true', 'count_fields', 'sum'):
+            return self._eval_counting(op, args, get_value)
 
         elif op == 'if':
-            if len(args) == 3:
-                condition = args[0]
-                # Evaluate condition if it's a formula
-                if isinstance(condition, dict):
-                    cond_result = self._evaluate_formula(condition, extracted, get_value)
-                else:
-                    cond_result = get_value(condition) if isinstance(condition, str) else condition
-
-                if cond_result:
-                    then_val = args[1]
-                    return get_value(then_val) if isinstance(then_val, str) else then_val
-                else:
-                    else_val = args[2]
-                    return get_value(else_val) if isinstance(else_val, str) else else_val
+            return self._eval_conditional(args, extracted, get_value)
 
         elif op == 'not':
-            # Negate a boolean value or formula
-            if isinstance(args, dict):
-                val = self._evaluate_formula(args, extracted, get_value)
-            else:
-                val = get_value(args) if isinstance(args, str) else args
-            return not val if val is not None else None
-
-        elif op == 'and':
-            # Logical AND of multiple values/formulas
-            values = args if isinstance(args, list) else [args]
-            results = []
-            for v in values:
-                if isinstance(v, dict):
-                    results.append(self._evaluate_formula(v, extracted, get_value))
-                else:
-                    results.append(get_value(v) if isinstance(v, str) else v)
-            return all(r for r in results if r is not None) if results else None
-
-        elif op == 'or':
-            # Logical OR of multiple values/formulas
-            values = args if isinstance(args, list) else [args]
-            results = []
-            for v in values:
-                if isinstance(v, dict):
-                    results.append(self._evaluate_formula(v, extracted, get_value))
-                else:
-                    results.append(get_value(v) if isinstance(v, str) else v)
-            return any(r for r in results if r is not None) if results else None
+            return self._eval_not(args, extracted, get_value)
 
         return None
 
-    def _calculate_derived_fields(self, extracted: Dict, text_lower: str, include_confidence: bool = False) -> Dict:
+    def _calculate_derived_fields(
+        self, extracted: Dict[str, Any], text_lower: str, include_confidence: bool = False
+    ) -> Dict[str, Any]:
         """
         Calculate fields that depend on other fields or ontology-defined computations.
 
@@ -861,7 +917,7 @@ class LLMParser:
             if include_confidence:
                 extracted[field] = ExtractionResult(
                     value=value,
-                    confidence=1.0,  # Computed fields have 100% confidence
+                    confidence=ConfidenceScores.COMPUTED,
                     source='computed',
                     extractor_type='computed'
                 )

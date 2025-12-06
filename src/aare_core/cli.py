@@ -64,7 +64,13 @@ Examples:
         try:
             with open(args.file, "r") as f:
                 llm_output = f.read()
-        except Exception as e:
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.file}", file=sys.stderr)
+            sys.exit(2)
+        except PermissionError:
+            print(f"Error: Permission denied reading file: {args.file}", file=sys.stderr)
+            sys.exit(2)
+        except OSError as e:
             print(f"Error reading file: {e}", file=sys.stderr)
             sys.exit(2)
     elif not sys.stdin.isatty():
@@ -82,7 +88,13 @@ Examples:
         try:
             with open(args.ontology, "r") as f:
                 ontology = json.load(f)
-        except Exception as e:
+        except FileNotFoundError:
+            print(f"Error: Ontology file not found: {args.ontology}", file=sys.stderr)
+            sys.exit(2)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in ontology file: {e}", file=sys.stderr)
+            sys.exit(2)
+        except OSError as e:
             print(f"Error loading ontology file: {e}", file=sys.stderr)
             sys.exit(2)
     else:
