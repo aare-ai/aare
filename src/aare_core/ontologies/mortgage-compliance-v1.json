@@ -135,9 +135,12 @@
       "id": "CREDIT_SCORE_MIN",
       "category": "Credit",
       "description": "Minimum credit score requirement for approval",
-      "formula_readable": "credit_score ≥ 500",
+      "formula_readable": "(credit_score = 0) ∨ (credit_score ≥ 500)",
       "formula": {
-        ">=": ["credit_score", 500]
+        "or": [
+          {"==": ["credit_score", 0]},
+          {">=": ["credit_score", 500]}
+        ]
       },
       "variables": [
         {"name": "credit_score", "type": "int"}
