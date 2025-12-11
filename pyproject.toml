@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aare-core"
-version = "0.2.7"
+version = "0.3.0"
 description = "Z3 SMT verification engine for LLM compliance"
 readme = "README.md"
 license = {text = "MIT"}
@@ -54,7 +54,7 @@ Documentation = "https://github.com/aare-ai/aare-core#readme"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["py.typed", "ontologies/*.json"]
+"*" = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

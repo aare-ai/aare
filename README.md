@@ -53,7 +53,7 @@ aare-verify --file response.txt --ontology hipaa-v1
 # Pipe from another command
 echo "The loan amount is $350,000 with DTI of 35%" | aare-verify --ontology fair-lending-v1
 
-# List all available ontologies (10 bundled + custom)
+# List all available ontologies
 aare-ontologies
 
 # Compact human-readable output (instead of JSON)
@@ -138,7 +138,7 @@ gunicorn --bind 0.0.0.0:8080 app:app
 │  │  └──────────┘  └──────────┘  └────────────────────┘     │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                              ↓                                │
-│              Bundled Ontologies + Custom ($ONTOLOGY_DIR)      │
+│                    Custom Ontologies ($ONTOLOGY_DIR)          │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -275,28 +275,36 @@ Retrieve a specific verification record by ID.
 curl http://localhost:8080/verifications/abc-123-uuid
 ```
 
-## Bundled Ontologies
+## Ontologies
 
-aare-core ships with 10 production-ready ontologies covering common compliance domains:
+Ontologies (verification rules) are managed separately from the core library. This allows you to update rules without changing the verification engine.
 
-| Ontology | Domain | Constraints | Use Case |
-|----------|--------|-------------|----------|
-| `mortgage-compliance-v1` | Lending | 5 | ATR/QM, HOEPA, UDAAP compliance |
-| `hipaa-v1` | Healthcare | 52 | HIPAA Privacy & Security Rule |
-| `medical-safety-v1` | Healthcare | 5 | Drug interactions, dosing limits |
-| `financial-compliance-v1` | Finance | 5 | Investment advice, disclaimers |
-| `fair-lending-v1` | Lending | 5 | DTI limits, credit score requirements |
-| `data-privacy-v1` | Security | 5 | PII detection, credential exposure |
-| `customer-service-v1` | Support | 5 | Discount limits, delivery promises |
-| `trading-compliance-v1` | Trading | 5 | Position limits, sector exposure |
-| `content-policy-v1` | Content | 5 | Real people, medical advice |
-| `contract-compliance-v1` | Legal | 5 | Usury limits, late fee caps |
+**Production ontologies** are available in the cloud deployment repositories:
+- [aare-aws/ontologies](https://github.com/aare-ai/aare-aws/tree/main/ontologies)
 
-Use any ontology by name:
+**Example ontologies** covering common compliance domains:
+
+| Ontology | Domain | Use Case |
+|----------|--------|----------|
+| `mortgage-compliance-v1` | Lending | ATR/QM, HOEPA, UDAAP compliance |
+| `hipaa-v1` | Healthcare | HIPAA Privacy & Security Rule |
+| `medical-safety-v1` | Healthcare | Drug interactions, dosing limits |
+| `financial-compliance-v1` | Finance | Investment advice, disclaimers |
+| `fair-lending-v1` | Lending | DTI limits, credit score requirements |
+| `data-privacy-v1` | Security | PII detection, credential exposure |
+| `customer-service-v1` | Support | Discount limits, delivery promises |
+| `trading-compliance-v1` | Trading | Position limits, sector exposure |
+| `content-policy-v1` | Content | Real people, medical advice |
+| `contract-compliance-v1` | Legal | Usury limits, late fee caps |
+
+To use ontologies, set the `ONTOLOGY_DIR` environment variable:
 
 ```bash
+export ONTOLOGY_DIR=/path/to/your/ontologies
 aare-verify --input "Your response" --ontology hipaa-v1
 ```
+
+If no ontology is found, an example ontology is used for demonstration purposes.
 
 ## Creating Custom Ontologies
 
