@@ -550,6 +550,22 @@ The multi-process mode achieves near-linear scaling. Z3 is not thread-safe, so w
 
 **Full benchmarks**: [BENCHMARKS.md](BENCHMARKS.md)
 
+## Architecture Note
+
+The verification pipeline has two distinct phases:
+
+1. **Extraction**: Parse unstructured LLM text into structured data (currently uses regex patterns defined in ontology extractors)
+2. **Verification**: Validate extracted data against constraints using Z3 SMT solver
+
+All validation logic lives in Z3. The extraction layer (regex) performs no validation - it only transforms text into structured data that Z3 can verify.
+
+**Future Enhancement**: The regex-based extraction can be replaced with alternative extraction methods without any changes to the verification layer:
+
+- **LLM-based extraction**: Use Claude or other LLMs with structured output to extract fields from complex, unstructured text
+- **NER model extraction**: Use fine-tuned transformer models (like the DistilBERT NER model in [aare-edge](https://github.com/aare-ai/aare-edge)) for domain-specific entity recognition
+
+Either approach would improve extraction accuracy while maintaining the same formal verification guarantees from Z3.
+
 ## Running Tests
 
 ```bash
