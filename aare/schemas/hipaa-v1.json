@@ -1,0 +1,205 @@
+{
+  "version": "1.0.0",
+  "name": "HIPAA Safe Harbor PHI Categories",
+  "description": "18 categories of Protected Health Information identifiers as defined by HIPAA Safe Harbor de-identification standard (45 CFR 164.514(b)(2))",
+  "categories": [
+    {
+      "id": 1,
+      "name": "NAMES",
+      "description": "Names of individuals",
+      "bio_labels": ["B-NAMES", "I-NAMES"],
+      "examples": ["John Smith", "Dr. Jane Doe", "Patient Rodriguez"],
+      "prohibited": true
+    },
+    {
+      "id": 2,
+      "name": "GEOGRAPHIC_SUBDIVISIONS",
+      "description": "All geographic subdivisions smaller than a state, including street address, city, county, precinct, ZIP code (first 3 digits may be retained if area has >20,000 population)",
+      "bio_labels": ["B-GEOGRAPHIC_SUBDIVISIONS", "I-GEOGRAPHIC_SUBDIVISIONS"],
+      "examples": ["123 Main Street", "Boston", "Suffolk County", "02115"],
+      "prohibited": true,
+      "notes": "ZIP codes with populations <20,000 must be changed to 000"
+    },
+    {
+      "id": 3,
+      "name": "DATES",
+      "description": "All elements of dates (except year) directly related to an individual, including birth date, admission date, discharge date, date of death; all ages over 89 and all elements of dates indicating such age",
+      "bio_labels": ["B-DATES", "I-DATES"],
+      "examples": ["01/15/1985", "March 23", "admitted on 12/01/2023"],
+      "prohibited": true,
+      "notes": "Year alone may be retained; ages >89 must be aggregated to 90+"
+    },
+    {
+      "id": 4,
+      "name": "PHONE_NUMBERS",
+      "description": "Telephone numbers",
+      "bio_labels": ["B-PHONE_NUMBERS", "I-PHONE_NUMBERS"],
+      "examples": ["(555) 123-4567", "617-555-0100", "+1-800-555-1234"],
+      "prohibited": true
+    },
+    {
+      "id": 5,
+      "name": "FAX_NUMBERS",
+      "description": "Fax numbers",
+      "bio_labels": ["B-FAX_NUMBERS", "I-FAX_NUMBERS"],
+      "examples": ["Fax: (555) 123-4568", "fax 617-555-0101"],
+      "prohibited": true
+    },
+    {
+      "id": 6,
+      "name": "EMAIL_ADDRESSES",
+      "description": "Electronic mail addresses",
+      "bio_labels": ["B-EMAIL_ADDRESSES", "I-EMAIL_ADDRESSES"],
+      "examples": ["john.smith@email.com", "patient@hospital.org"],
+      "prohibited": true
+    },
+    {
+      "id": 7,
+      "name": "SSN",
+      "description": "Social Security numbers",
+      "bio_labels": ["B-SSN", "I-SSN"],
+      "examples": ["123-45-6789", "SSN: 987654321"],
+      "prohibited": true
+    },
+    {
+      "id": 8,
+      "name": "MEDICAL_RECORD_NUMBERS",
+      "description": "Medical record numbers",
+      "bio_labels": ["B-MEDICAL_RECORD_NUMBERS", "I-MEDICAL_RECORD_NUMBERS"],
+      "examples": ["MRN: 12345678", "Medical Record #A-123456"],
+      "prohibited": true
+    },
+    {
+      "id": 9,
+      "name": "HEALTH_PLAN_BENEFICIARY_NUMBERS",
+      "description": "Health plan beneficiary numbers",
+      "bio_labels": ["B-HEALTH_PLAN_BENEFICIARY_NUMBERS", "I-HEALTH_PLAN_BENEFICIARY_NUMBERS"],
+      "examples": ["Member ID: XYZ123456", "Policy #: 9876543210"],
+      "prohibited": true
+    },
+    {
+      "id": 10,
+      "name": "ACCOUNT_NUMBERS",
+      "description": "Account numbers",
+      "bio_labels": ["B-ACCOUNT_NUMBERS", "I-ACCOUNT_NUMBERS"],
+      "examples": ["Account #12345", "Billing Account: 98765"],
+      "prohibited": true
+    },
+    {
+      "id": 11,
+      "name": "CERTIFICATE_LICENSE_NUMBERS",
+      "description": "Certificate/license numbers",
+      "bio_labels": ["B-CERTIFICATE_LICENSE_NUMBERS", "I-CERTIFICATE_LICENSE_NUMBERS"],
+      "examples": ["License #: DL123456", "Certificate: CERT-2024-001"],
+      "prohibited": true
+    },
+    {
+      "id": 12,
+      "name": "VEHICLE_IDENTIFIERS",
+      "description": "Vehicle identifiers and serial numbers, including license plate numbers",
+      "bio_labels": ["B-VEHICLE_IDENTIFIERS", "I-VEHICLE_IDENTIFIERS"],
+      "examples": ["VIN: 1HGBH41JXMN109186", "License Plate: ABC-1234"],
+      "prohibited": true
+    },
+    {
+      "id": 13,
+      "name": "DEVICE_IDENTIFIERS",
+      "description": "Device identifiers and serial numbers",
+      "bio_labels": ["B-DEVICE_IDENTIFIERS", "I-DEVICE_IDENTIFIERS"],
+      "examples": ["Pacemaker S/N: PM123456", "Device ID: DEV-2024-0001"],
+      "prohibited": true
+    },
+    {
+      "id": 14,
+      "name": "WEB_URLS",
+      "description": "Web Universal Resource Locators (URLs)",
+      "bio_labels": ["B-WEB_URLS", "I-WEB_URLS"],
+      "examples": ["http://patient-portal.example.com/user123", "www.myhealth.com/johnsmith"],
+      "prohibited": true
+    },
+    {
+      "id": 15,
+      "name": "IP_ADDRESSES",
+      "description": "Internet Protocol (IP) address numbers",
+      "bio_labels": ["B-IP_ADDRESSES", "I-IP_ADDRESSES"],
+      "examples": ["192.168.1.100", "10.0.0.1", "2001:0db8:85a3::8a2e:0370:7334"],
+      "prohibited": true
+    },
+    {
+      "id": 16,
+      "name": "BIOMETRIC_IDENTIFIERS",
+      "description": "Biometric identifiers, including finger and voice prints",
+      "bio_labels": ["B-BIOMETRIC_IDENTIFIERS", "I-BIOMETRIC_IDENTIFIERS"],
+      "examples": ["Fingerprint ID: FP-12345", "Voice print reference: VP-98765"],
+      "prohibited": true
+    },
+    {
+      "id": 17,
+      "name": "PHOTOGRAPHIC_IMAGES",
+      "description": "Full face photographic images and any comparable images",
+      "bio_labels": ["B-PHOTOGRAPHIC_IMAGES", "I-PHOTOGRAPHIC_IMAGES"],
+      "examples": ["[Photo: patient_face.jpg]", "Image file: ID_photo_001.png"],
+      "prohibited": true
+    },
+    {
+      "id": 18,
+      "name": "ANY_OTHER_UNIQUE_IDENTIFYING_NUMBER",
+      "description": "Any other unique identifying number, characteristic, or code",
+      "bio_labels": ["B-ANY_OTHER_UNIQUE_IDENTIFYING_NUMBER", "I-ANY_OTHER_UNIQUE_IDENTIFYING_NUMBER"],
+      "examples": ["Employee ID: E12345", "Badge #: B-9876", "Customer Code: CUST-001"],
+      "prohibited": true
+    }
+  ],
+  "label_list": [
+    "O",
+    "B-NAME", "I-NAME",
+    "B-LOCATION", "I-LOCATION",
+    "B-DATE", "I-DATE",
+    "B-PHONE", "I-PHONE",
+    "B-FAX", "I-FAX",
+    "B-EMAIL", "I-EMAIL",
+    "B-SSN", "I-SSN",
+    "B-MRN", "I-MRN",
+    "B-HEALTH_PLAN", "I-HEALTH_PLAN",
+    "B-ACCOUNT", "I-ACCOUNT",
+    "B-LICENSE", "I-LICENSE",
+    "B-VEHICLE", "I-VEHICLE",
+    "B-DEVICE", "I-DEVICE",
+    "B-URL", "I-URL",
+    "B-IP", "I-IP",
+    "B-BIOMETRIC", "I-BIOMETRIC",
+    "B-PHOTO", "I-PHOTO",
+    "B-OTHER", "I-OTHER"
+  ],
+  "num_labels": 37,
+  "dataset_label_remap": {
+    "PATIENT": "NAME",
+    "DOCTOR": "NAME",
+    "USERNAME": "NAME",
+    "LOCATION": "LOCATION",
+    "HOSPITAL": "LOCATION",
+    "CITY": "LOCATION",
+    "STATE": "LOCATION",
+    "STREET": "LOCATION",
+    "ZIP": "LOCATION",
+    "COUNTRY": "LOCATION",
+    "ORGANIZATION": "LOCATION",
+    "DATE": "DATE",
+    "AGE": "DATE",
+    "PHONE": "PHONE",
+    "FAX": "FAX",
+    "EMAIL": "EMAIL",
+    "SSN": "SSN",
+    "MEDICALRECORD": "MRN",
+    "IDNUM": "MRN",
+    "HEALTHPLAN": "HEALTH_PLAN",
+    "ACCOUNT": "ACCOUNT",
+    "LICENSE": "LICENSE",
+    "VEHICLE": "VEHICLE",
+    "DEVICE": "DEVICE",
+    "URL": "URL",
+    "IPADDR": "IP",
+    "BIOID": "BIOMETRIC",
+    "PROFESSION": "OTHER"
+  }
+}

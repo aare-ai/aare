@@ -1,1 +1,1 @@
-# aare.ai tests
+# Tests for aare package
