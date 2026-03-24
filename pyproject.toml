@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aare-core"
-version = "0.1.1"
+version = "0.1.2"
 description = "HIPAA guardrails for AI agents - formal verification for LLM inputs and outputs"
 readme = "README.md"
 license = "MIT"
