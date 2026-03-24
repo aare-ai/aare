@@ -1,13 +1,12 @@
-"""HIPAA Guardrail for LangChain.
+"""HIPAA Guardrails for LangChain.
 
-Drop-in guardrail that verifies LLM outputs are HIPAA compliant
-before they reach end users.
+Drop-in guardrails that verify LLM inputs and outputs are HIPAA compliant.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, List, Literal, Optional, Union
+from typing import Any, List, Literal, Optional
 
 from langchain_core.runnables import Runnable, RunnableConfig
 
@@ -70,8 +69,95 @@ class GuardrailResult:
         }
 
 
-class HIPAAGuardrail(Runnable):
-    """HIPAA compliance guardrail for LangChain.
+class BaseGuardrail(Runnable):
+    """Base class for HIPAA guardrails with shared PHI detection logic.
+
+    Provides extractor setup, entity conversion, PHI verification,
+    and redaction. Subclasses implement ``check()`` and ``invoke()``.
+
+    Args:
+        extractor: PHI extractor to use. Defaults to RegexExtractor.
+        on_violation: Action on violation:
+            - "block": Raise error (default)
+            - "warn": Log warning, return original text
+            - "redact": Replace PHI with [REDACTED], return sanitized text
+    """
+
+    def __init__(
+        self,
+        extractor: Optional[Extractor] = None,
+        on_violation: Literal["block", "warn", "redact"] = "block"
+    ):
+        self.on_violation = on_violation
+        self._verifier = HIPAAVerifier()
+
+        # Default to regex extractor (no dependencies)
+        if extractor is None:
+            from .extractors.regex import RegexExtractor
+            self._extractor = RegexExtractor()
+        else:
+            self._extractor = extractor
+
+    def preload(self) -> None:
+        """Eagerly load models into memory.
+
+        Call at application startup to avoid latency on first check.
+        Override in subclasses to preload additional models.
+        """
+        # Extractor is already loaded eagerly in __init__
+        pass
+
+    def _convert_entities(self, entities: List[PHIEntity]) -> List[PHIDetection]:
+        """Convert PHIEntity to PHIDetection for verifier."""
+        return [
+            PHIDetection(
+                category=e.entity_type,
+                value=e.text,
+                start=e.start,
+                end=e.end,
+                confidence=e.confidence
+            )
+            for e in entities
+        ]
+
+    def _run_phi_check(self, text: str) -> tuple[List[PHIEntity], VerificationResult]:
+        """Extract PHI entities and verify compliance.
+
+        Returns:
+            Tuple of (extracted entities, verification result).
+        """
+        entities = self._extractor.extract(text)
+        detections = self._convert_entities(entities)
+        result = self._verifier.verify(detections)
+        return entities, result
+
+    def _redact_phi(self, text: str, entities: List[PHIEntity]) -> str:
+        """Replace PHI with [REDACTED] markers."""
+        sorted_entities = sorted(entities, key=lambda e: e.start, reverse=True)
+
+        result = text
+        for entity in sorted_entities:
+            result = (
+                result[:entity.start] +
+                f"[REDACTED:{entity.entity_type}]" +
+                result[entity.end:]
+            )
+
+        return result
+
+    @property
+    def InputType(self):
+        """Input type for the runnable."""
+        return str
+
+    @property
+    def OutputType(self):
+        """Output type for the runnable."""
+        return str
+
+
+class HIPAAGuardrail(BaseGuardrail):
+    """HIPAA compliance guardrail for LLM outputs.
 
     Intercepts LLM outputs and verifies they don't contain
     prohibited PHI before delivering to users.
@@ -101,34 +187,6 @@ class HIPAAGuardrail(Runnable):
             - "redact": Replace PHI with [REDACTED], return sanitized text
     """
 
-    def __init__(
-        self,
-        extractor: Optional[Extractor] = None,
-        on_violation: Literal["block", "warn", "redact"] = "block"
-    ):
-        self.on_violation = on_violation
-        self._verifier = HIPAAVerifier()
-
-        # Default to regex extractor (no dependencies)
-        if extractor is None:
-            from .extractors.regex import RegexExtractor
-            self._extractor = RegexExtractor()
-        else:
-            self._extractor = extractor
-
-    def _convert_entities(self, entities: List[PHIEntity]) -> List[PHIDetection]:
-        """Convert PHIEntity to PHIDetection for verifier."""
-        return [
-            PHIDetection(
-                category=e.entity_type,
-                value=e.text,
-                start=e.start,
-                end=e.end,
-                confidence=e.confidence
-            )
-            for e in entities
-        ]
-
     def check(self, text: str) -> GuardrailResult:
         """Check text for HIPAA compliance.
 
@@ -138,12 +196,7 @@ class HIPAAGuardrail(Runnable):
         Returns:
             GuardrailResult with verification details.
         """
-        # Extract entities
-        entities = self._extractor.extract(text)
-        detections = self._convert_entities(entities)
-
-        # Verify
-        result = self._verifier.verify(detections)
+        entities, result = self._run_phi_check(text)
 
         if result.is_compliant:
             return GuardrailResult(
@@ -179,21 +232,6 @@ class HIPAAGuardrail(Runnable):
             verification=result,
             action_taken="unknown"
         )
-
-    def _redact_phi(self, text: str, entities: List[PHIEntity]) -> str:
-        """Replace PHI with [REDACTED] markers."""
-        # Sort by position (reverse) to avoid offset issues
-        sorted_entities = sorted(entities, key=lambda e: e.start, reverse=True)
-
-        result = text
-        for entity in sorted_entities:
-            result = (
-                result[:entity.start] +
-                f"[REDACTED:{entity.entity_type}]" +
-                result[entity.end:]
-            )
-
-        return result
 
     def invoke(
         self,
@@ -237,15 +275,9 @@ class HIPAAGuardrail(Runnable):
         """Async version of invoke."""
         return self.invoke(input, config)
 
-    @property
-    def InputType(self):
-        """Input type for the runnable."""
-        return str
 
-    @property
-    def OutputType(self):
-        """Output type for the runnable."""
-        return str
+# Alias for clarity in input/output guardrail pairs
+HIPAAOutputGuardrail = HIPAAGuardrail
 
 
 def create_guardrail(
@@ -256,7 +288,7 @@ def create_guardrail(
     """Factory function to create a guardrail with specified extractor.
 
     Args:
-        extractor: Extractor type - "regex" or "presidio".
+        extractor: Extractor type - "regex", "distilbert", or "presidio".
         on_violation: Action on violation.
         **kwargs: Additional arguments for the extractor.
 
@@ -266,6 +298,9 @@ def create_guardrail(
     if extractor == "presidio":
         from .extractors.presidio import PresidioExtractor
         ext = PresidioExtractor(**kwargs)
+    elif extractor == "distilbert":
+        from .extractors.distilbert import DistilBERTExtractor
+        ext = DistilBERTExtractor(**kwargs)
     else:
         from .extractors.regex import RegexExtractor
         ext = RegexExtractor(**kwargs)

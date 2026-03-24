@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aare-core"
-version = "0.1.0"
-description = "HIPAA guardrails for AI agents - formal verification for LLM outputs"
+version = "0.1.1"
+description = "HIPAA guardrails for AI agents - formal verification for LLM inputs and outputs"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
@@ -21,6 +21,8 @@ keywords = [
     "ai-safety",
     "phi",
     "healthcare",
+    "prompt-injection",
+    "jailbreak-detection",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -38,6 +40,8 @@ classifiers = [
 dependencies = [
     "z3-solver>=4.8",
     "langchain-core>=0.1",
+    "torch>=2.0",
+    "transformers>=4.36",
 ]
 
 [project.optional-dependencies]
